@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#183D32"><title>إدارة ORTHIVA</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+:root{--forest:#183d32;--ivory:#f7f5ef;--sage:#a8b9a5;--ink:#292f2c}body{background:var(--ivory);color:var(--ink);font-family:Arial,sans-serif;margin:0}.admin-wrap{max-width:1100px;margin:auto;padding:18px}.admin-head{background:var(--forest);color:white;padding:18px;border-radius:18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.admin-head a{color:white}.panel{background:white;border:1px solid #e1e4dc;border-radius:16px;padding:18px;margin:16px 0;box-shadow:0 6px 24px #183d320d}.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field input,.field textarea,.field select{font:inherit;padding:12px;border:1px solid #ccd4ca;border-radius:10px;background:#fff;min-width:0}.field textarea{min-height:80px}.btn{border:0;border-radius:10px;padding:11px 15px;background:var(--forest);color:white;font:inherit;cursor:pointer}.btn.secondary{background:#e6ebe3;color:var(--forest)}.btn.danger{background:#a93232}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.notice{padding:12px;border-radius:10px;background:#eef3ec;margin:12px 0;white-space:pre-wrap}.hidden{display:none!important}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:650px}th,td{text-align:right;padding:11px;border-bottom:1px solid #e8ebe5}th{background:#f2f4ef}.thumb{width:54px;height:54px;object-fit:cover;border-radius:8px}.muted{color:#68736c;font-size:.92rem}.top-links{display:flex;gap:14px}.top-links a{color:white}.status{font-size:.9rem}.product-form-title{margin-top:0}@media(max-width:500px){.admin-wrap{padding:10px}.panel{padding:13px}.admin-head{padding:14px}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script>
+</head><body><main class="admin-wrap">
+<header class="admin-head"><div><h1 style="margin:0">ORTHIVA <span style="font-size:.65em;font-weight:normal">لوحة الإدارة</span></h1><div class="status" id="connection-status">جارٍ تهيئة الاتصال…</div></div><nav class="top-links"><a href="/">المتجر</a><button id="logout" class="btn secondary hidden" type="button">تسجيل الخروج</button></nav></header>
+<div id="notice" class="notice" role="status">سجّل الدخول بحساب المدير.</div>
+<section id="login-panel" class="panel"><h2>دخول المدير</h2><p class="muted">استخدم البريد وكلمة المرور لحساب المدير الذي أنشأته في Supabase Auth.</p><form id="login-form"><div class="form-grid"><label class="field">البريد الإلكتروني<input id="email" type="email" required autocomplete="username"></label><label class="field">كلمة المرور<input id="password" type="password" required autocomplete="current-password"></label></div><div class="actions"><button class="btn" type="submit">تسجيل الدخول</button></div></form></section>
+<div id="admin-area" class="hidden">
+<section class="panel"><h2 class="product-form-title" id="form-heading">إضافة منتج</h2><form id="product-form"><input type="hidden" id="product-id"><div class="form-grid">
+<label class="field">اسم المنتج *<input id="name" required maxlength="180"></label><label class="field">الرابط المختصر (slug) *<input id="slug" required maxlength="200" placeholder="medical-shoes"></label><label class="field">التصنيف *<select id="category" required>
+<option value="medical-shoes">أحذية طبية</option>
+<option value="orthopedic-shoes">أحذية تقويمية</option>
+<option value="diabetic-shoes">أحذية لمرضى السكري</option>
+<option value="medical-clogs">قباقيب طبية</option>
+<option value="orthopedic-insoles">نعال وضمادات تقويمية</option>
+<option value="comfort-shoes">أحذية مريحة يومية</option>
+<option value="medical-accessories">إكسسوارات ومستلزمات طبية</option>
+<option value="other">أخرى</option>
+</select></label><label class="field">السعر بالدينار *<input id="price" type="number" min="0" step="0.01" required></label><label class="field">السعر قبل التخفيض<input id="compare_at_price" type="number" min="0" step="0.01"></label><label class="field">صورة المنتج<input id="image-file" type="file" accept="image/png,image/jpeg,image/webp"></label><label class="field">رابط الصورة (اختياري)<input id="image_url" type="url" placeholder="https://…"></label><label class="field">نشر المنتج<select id="is_published"><option value="false">مسودة — مخفي</option><option value="true">منشور — ظاهر في المتجر</option></select></label><label class="field" style="grid-column:1/-1">الوصف *<textarea id="description" required></textarea></label>
+</div>
+<div class="panel" style="margin:16px 0;background:#f8faf6;border:1px solid #dfe7dc;box-shadow:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0">المقاسات والألوان والمخزون</h3><button class="btn secondary" type="button" id="add-variant">+ إضافة خيار</button></div>
+  <p class="muted">أضف كل تركيبة مقاس/لون في سطر مستقل وحدد كمية المخزون. يجب حفظ المنتج أولًا لتتمكن من حفظ الخيارات.</p>
+  <div class="table-wrap"><table style="min-width:520px"><thead><tr><th>المقاس</th><th>اللون</th><th>الكمية</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="variants-body"><tr><td colspan="5">أضف خيارًا واحدًا على الأقل.</td></tr></tbody></table></div>
+</div>
+<div class="actions"><button class="btn" type="submit" id="save-product">حفظ المنتج</button><button class="btn secondary" type="button" id="reset-form">إفراغ النموذج</button></div></form></section>
+<section class="panel"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h2>المنتجات</h2><button id="refresh-products" class="btn secondary" type="button">تحديث القائمة</button></div><div class="table-wrap"><table><thead><tr><th>الصورة</th><th>المنتج</th><th>السعر</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody id="products-body"><tr><td colspan="5">جارٍ التحميل…</td></tr></tbody></table></div></section>
+<section class="panel"><h2>الطلبات</h2><p class="muted">يعرض أحدث الطلبات إذا كانت سياسات RLS تسمح لحساب المدير بقراءتها.</p><button id="refresh-orders" class="btn secondary" type="button">تحميل الطلبات</button><div class="table-wrap"><table><thead><tr><th>رقم الطلب</th><th>العميل</th><th>الهاتف</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody id="orders-body"><tr><td colspan="5">اضغط تحميل الطلبات.</td></tr></tbody></table></div></section>
+</div><p class="muted">الأمان: صلاحيات التعديل والرفع يجب أن تُفرض في Supabase RLS. لا تستخدم مفاتيح sb_secret أو service_role في هذه الصفحة.</p></main>
+<script src="admin.js"></script></body></html>
