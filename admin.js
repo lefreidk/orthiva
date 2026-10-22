@@ -3,12 +3,15 @@
 
     const cfg = window.ORTHIVA_CONFIG || {};
     const $ = id => document.getElementById(id);
-
     const notice = $('notice');
 
     let db = null;
     let products = [];
     let variantRows = [];
+
+    // =========================================================
+    // أدوات مساعدة
+    // =========================================================
 
     const escapeHtml = value =>
         String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -37,13 +40,59 @@
         });
     }
 
+    function getFirstValue(object, keys, fallback = '—') {
+        for (const key of keys) {
+            const value = object?.[key];
+
+            if (
+                value !== null &&
+                value !== undefined &&
+                String(value).trim() !== ''
+            ) {
+                return value;
+            }
+        }
+
+        return fallback;
+    }
+
+    function formatDate(value) {
+        if (!value) return '—';
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return String(value);
+        }
+
+        return date.toLocaleString('ar-DZ', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    // =========================================================
+    // الاتصال بـ Supabase
+    // =========================================================
+
     if (
         !window.supabase ||
         !cfg.SUPABASE_URL ||
         !cfg.SUPABASE_ANON_KEY
     ) {
-        $('connection-status').textContent = 'إعدادات الاتصال ناقصة';
-        say('تعذر تهيئة Supabase. تحقق من config.js.', true);
+        if ($('connection-status')) {
+            $('connection-status').textContent =
+                'إعدادات الاتصال ناقصة';
+        }
+
+        say(
+            'تعذر تهيئة Supabase. تحقق من ملف config.js.',
+            true
+        );
+
         return;
     }
 
@@ -52,7 +101,12 @@
         cfg.SUPABASE_ANON_KEY
     );
 
-    $('connection-status').textContent = 'تم تهيئة عميل Supabase';
+    $('connection-status').textContent =
+        'تم تهيئة عميل Supabase';
+
+    // =========================================================
+    // تسجيل الدخول والخروج
+    // =========================================================
 
     function toggleLoggedIn(user) {
         $('login-panel').classList.toggle('hidden', !!user);
@@ -64,14 +118,17 @@
         const { data, error } = await db.auth.getSession();
 
         if (error) {
-            say('تعذر التحقق من الجلسة: ' + error.message, true);
+            say(
+                'تعذر التحقق من جلسة الدخول: ' + error.message,
+                true
+            );
             return;
         }
 
         toggleLoggedIn(data.session?.user || null);
 
         if (data.session?.user) {
-            say('تم تسجيل الدخول. جارٍ تحميل البيانات...');
+            say('تم تسجيل الدخول. جارٍ تحميل المنتجات...');
             await loadProducts();
         }
     }
@@ -80,25 +137,32 @@
         event.preventDefault();
 
         const button = event.submitter;
+
         if (button) button.disabled = true;
 
         say('جارٍ تسجيل الدخول...');
 
         try {
-            const { data, error } = await db.auth.signInWithPassword({
-                email: $('email').value.trim(),
-                password: $('password').value
-            });
+            const { data, error } =
+                await db.auth.signInWithPassword({
+                    email: $('email').value.trim(),
+                    password: $('password').value
+                });
 
             if (error) throw error;
 
             toggleLoggedIn(data.user);
 
             say('تم تسجيل الدخول. جارٍ تحميل المنتجات...');
+
             await loadProducts();
 
         } catch (error) {
-            say('فشل تسجيل الدخول: ' + error.message, true);
+            say(
+                'فشل تسجيل الدخول: ' +
+                (error.message || String(error)),
+                true
+            );
         } finally {
             if (button) button.disabled = false;
         }
@@ -108,7 +172,10 @@
         const { error } = await db.auth.signOut();
 
         if (error) {
-            say('تعذر تسجيل الخروج: ' + error.message, true);
+            say(
+                'تعذر تسجيل الخروج: ' + error.message,
+                true
+            );
             return;
         }
 
@@ -120,11 +187,18 @@
         toggleLoggedIn(session?.user || null);
     });
 
+    // =========================================================
+    // تحميل المنتجات
+    // =========================================================
+
     async function loadProducts() {
         const body = $('products-body');
 
-        body.innerHTML =
-            '<tr><td colspan="5">جارٍ تحميل المنتجات...</td></tr>';
+        body.innerHTML = `
+            <tr>
+                <td colspan="5">جارٍ تحميل المنتجات...</td>
+            </tr>
+        `;
 
         const { data, error } = await db
             .from('products')
@@ -152,12 +226,16 @@
             .order('created_at', { ascending: false });
 
         if (error) {
-            body.innerHTML =
-                '<tr><td colspan="5">تعذر تحميل المنتجات.</td></tr>';
+            body.innerHTML = `
+                <tr>
+                    <td colspan="5">تعذر تحميل المنتجات.</td>
+                </tr>
+            `;
 
             say(
-                'تعذر قراءة المنتجات: ' + error.message +
-                ' — تحقق من صلاحيات Supabase وسياسات RLS.',
+                'تعذر قراءة المنتجات: ' +
+                error.message +
+                ' — تحقق من سياسات RLS وصلاحيات المدير.',
                 true
             );
 
@@ -175,9 +253,13 @@
                     <td>
                         ${
                             product.image_url
-                                ? `<img class="thumb"
-                                    src="${escapeHtml(product.image_url)}"
-                                    alt="">`
+                                ? `
+                                    <img
+                                        class="thumb"
+                                        src="${escapeHtml(product.image_url)}"
+                                        alt=""
+                                    >
+                                `
                                 : '—'
                         }
                     </td>
@@ -213,30 +295,46 @@
                     </td>
                 </tr>
             `).join('')
-            : '<tr><td colspan="5">لا توجد منتجات.</td></tr>';
+            : `
+                <tr>
+                    <td colspan="5">لا توجد منتجات.</td>
+                </tr>
+            `;
     }
 
     // =========================================================
-    // إدارة المقاسات والألوان
+    // عرض المقاسات والألوان
     // =========================================================
 
     function renderVariants() {
         const body = $('variants-body');
 
         if (!variantRows.length) {
-            body.innerHTML =
-                '<tr><td colspan="5">أضف مقاسًا ولونًا واحدًا على الأقل.</td></tr>';
+            body.innerHTML = `
+                <tr>
+                    <td colspan="5">
+                        أضف مقاسًا ولونًا واحدًا على الأقل.
+                    </td>
+                </tr>
+            `;
             return;
         }
 
         const defaultSizes = [
-            '36', '37', '38', '39', '40', '41',
-            '42', '43', '44', '45', '46'
+            '36', '37', '38', '39', '40',
+            '41', '42', '43', '44', '45', '46'
         ];
 
         const defaultColors = [
-            'أسود', 'أبيض', 'بني', 'بيج',
-            'رمادي', 'كحلي', 'وردي', 'أزرق', 'أخضر'
+            'أسود',
+            'أبيض',
+            'بني',
+            'بيج',
+            'رمادي',
+            'كحلي',
+            'وردي',
+            'أزرق',
+            'أخضر'
         ];
 
         body.innerHTML = variantRows.map((variant, index) => {
@@ -260,16 +358,21 @@
                         <select
                             aria-label="المقاس"
                             data-vsize="${index}"
-                            required>
-                            <option value="" disabled
-                                ${currentSize ? '' : 'selected'}>
+                            required
+                        >
+                            <option
+                                value=""
+                                disabled
+                                ${currentSize ? '' : 'selected'}
+                            >
                                 اختر المقاس
                             </option>
 
                             ${sizes.map(size => `
                                 <option
                                     value="${escapeHtml(size)}"
-                                    ${currentSize === size ? 'selected' : ''}>
+                                    ${currentSize === size ? 'selected' : ''}
+                                >
                                     ${escapeHtml(size)}
                                 </option>
                             `).join('')}
@@ -280,16 +383,21 @@
                         <select
                             aria-label="اللون"
                             data-vcolor="${index}"
-                            required>
-                            <option value="" disabled
-                                ${currentColor ? '' : 'selected'}>
+                            required
+                        >
+                            <option
+                                value=""
+                                disabled
+                                ${currentColor ? '' : 'selected'}
+                            >
                                 اختر اللون
                             </option>
 
                             ${colors.map(color => `
                                 <option
                                     value="${escapeHtml(color)}"
-                                    ${currentColor === color ? 'selected' : ''}>
+                                    ${currentColor === color ? 'selected' : ''}
+                                >
                                     ${escapeHtml(color)}
                                 </option>
                             `).join('')}
@@ -305,20 +413,26 @@
                             step="1"
                             value="${Number(variant.stock_quantity ?? 0)}"
                             required
-                            style="width:90px">
+                            style="width:90px"
+                        >
                     </td>
 
                     <td>
                         <select
                             aria-label="حالة الخيار"
-                            data-vactive="${index}">
-                            <option value="true"
-                                ${variant.is_active !== false ? 'selected' : ''}>
+                            data-vactive="${index}"
+                        >
+                            <option
+                                value="true"
+                                ${variant.is_active !== false ? 'selected' : ''}
+                            >
                                 نشط
                             </option>
 
-                            <option value="false"
-                                ${variant.is_active === false ? 'selected' : ''}>
+                            <option
+                                value="false"
+                                ${variant.is_active === false ? 'selected' : ''}
+                            >
                                 متوقف
                             </option>
                         </select>
@@ -328,7 +442,8 @@
                         <button
                             type="button"
                             class="btn danger"
-                            data-vremove="${index}">
+                            data-vremove="${index}"
+                        >
                             حذف
                         </button>
                     </td>
@@ -359,9 +474,7 @@
 
             if (!size || !color || !stock || !active) {
                 throw new Error(
-                    'تعذر قراءة صف المقاس واللون رقم ' +
-                    (index + 1) +
-                    '. حدّث الصفحة وحاول مجددًا.'
+                    `تعذر قراءة بيانات الخيار رقم ${index + 1}.`
                 );
             }
 
@@ -369,15 +482,18 @@
                 ...variantRows[index],
                 size: size.value.trim(),
                 color: color.value.trim(),
-                stock_quantity: stock.value === ''
-                    ? NaN
-                    : Number(stock.value),
+                stock_quantity:
+                    stock.value === '' ? NaN : Number(stock.value),
                 is_active: active.value === 'true'
             });
         }
 
         variantRows = updatedRows;
     }
+
+    // =========================================================
+    // إضافة خيار جديد
+    // =========================================================
 
     $('add-variant').addEventListener('click', event => {
         event.preventDefault();
@@ -399,6 +515,10 @@
         }
     });
 
+    // =========================================================
+    // حذف صف من خيارات المنتج
+    // =========================================================
+
     $('variants-body').addEventListener('click', event => {
         const button = event.target.closest('[data-vremove]');
 
@@ -409,12 +529,16 @@
 
             const index = Number(button.dataset.vremove);
 
-            if (!Number.isInteger(index) || index < 0 ||
-                index >= variantRows.length) {
+            if (
+                !Number.isInteger(index) ||
+                index < 0 ||
+                index >= variantRows.length
+            ) {
                 throw new Error('تعذر تحديد الخيار المطلوب حذفه.');
             }
 
             variantRows.splice(index, 1);
+
             renderVariants();
 
         } catch (error) {
@@ -423,7 +547,7 @@
     });
 
     // =========================================================
-    // حفظ جميع الخيارات والتحقق من تكرار المقاسات والألوان
+    // حفظ خيارات المنتج المتعددة
     // =========================================================
 
     async function saveVariants(productId) {
@@ -431,12 +555,13 @@
 
         if (!variantRows.length) {
             throw new Error(
-                'أضف مقاسًا ولونًا واحدًا على الأقل قبل حفظ المنتج.'
+                'أضف مقاسًا ولونًا واحدًا على الأقل.'
             );
         }
 
         const combinations = new Set();
 
+        // التحقق من كل صف ومنع تكرار المقاس واللون.
         for (let index = 0; index < variantRows.length; index++) {
             const variant = variantRows[index];
 
@@ -451,28 +576,28 @@
                 variant.stock_quantity < 0
             ) {
                 throw new Error(
-                    `الكمية في الصف رقم ${index + 1} يجب أن تكون عددًا صحيحًا غير سالب.`
+                    `الكمية في الصف رقم ${index + 1} غير صحيحة.`
                 );
             }
 
-            const combinationKey =
+            const key =
                 `${variant.size.trim().toLowerCase()}::` +
                 `${variant.color.trim().toLowerCase()}`;
 
-            if (combinations.has(combinationKey)) {
+            if (combinations.has(key)) {
                 throw new Error(
-                    `المقاس ${variant.size} واللون ${variant.color} مكرران. ` +
-                    'كل تركيبة مقاس ولون يجب أن تكون فريدة.'
+                    `المقاس ${variant.size} واللون ${variant.color} مكرران.`
                 );
             }
 
-            combinations.add(combinationKey);
+            combinations.add(key);
         }
 
-        const oldVariants =
-            products.find(product =>
-                String(product.id) === String(productId)
-            )?.variants || [];
+        const existingProduct = products.find(product =>
+            String(product.id) === String(productId)
+        );
+
+        const oldVariants = existingProduct?.variants || [];
 
         const currentIds = new Set(
             variantRows
@@ -480,7 +605,7 @@
                 .map(variant => String(variant.id))
         );
 
-        // أولًا: تحديث الخيارات الموجودة.
+        // تحديث الخيارات الموجودة.
         for (const variant of variantRows) {
             if (!variant.id) continue;
 
@@ -500,13 +625,13 @@
 
             if (error) {
                 throw new Error(
-                    `فشل تحديث المقاس ${variant.size} واللون ${variant.color}: ` +
+                    `تعذر تحديث ${variant.size}/${variant.color}: ` +
                     error.message
                 );
             }
         }
 
-        // ثانيًا: إدراج كل الخيارات الجديدة في طلب واحد.
+        // إدراج جميع الخيارات الجديدة في عملية واحدة.
         const newVariants = variantRows
             .filter(variant => !variant.id)
             .map(variant => ({
@@ -524,12 +649,13 @@
 
             if (error) {
                 throw new Error(
-                    'فشل حفظ الخيارات الجديدة: ' + error.message
+                    'فشل حفظ المقاسات والألوان الجديدة: ' +
+                    error.message
                 );
             }
         }
 
-        // ثالثًا: تعطيل الخيارات التي أزيلت من النموذج.
+        // إيقاف الخيارات القديمة التي حُذفت من النموذج.
         const removedVariants = oldVariants.filter(variant =>
             !currentIds.has(String(variant.id))
         );
@@ -543,28 +669,32 @@
 
             if (error) {
                 throw new Error(
-                    'تعذر إيقاف الخيار المحذوف ' +
-                    `${variant.size}/${variant.color}: ${error.message}`
+                    'تعذر إيقاف الخيار ' +
+                    `${variant.size}/${variant.color}: ` +
+                    error.message
                 );
             }
         }
     }
 
     // =========================================================
-    // نموذج المنتج
+    // إعادة ضبط نموذج المنتج
     // =========================================================
 
     function resetForm() {
         $('product-form').reset();
 
         variantRows = [];
+
         renderVariants();
 
         $('product-id').value = '';
         $('category').value = 'medical-shoes';
         $('is_published').value = 'false';
+
         $('form-heading').textContent = 'إضافة منتج';
         $('save-product').textContent = 'حفظ المنتج';
+
         $('image-file').value = '';
     }
 
@@ -574,6 +704,10 @@
     });
 
     $('refresh-products').addEventListener('click', loadProducts);
+
+    // =========================================================
+    // إنشاء الرابط المختصر للمنتج
+    // =========================================================
 
     $('name').addEventListener('input', () => {
         if (!$('product-id').value) {
@@ -585,6 +719,10 @@
         }
     });
 
+    // =========================================================
+    // رفع الصور
+    // =========================================================
+
     async function uploadImage(file) {
         const allowedTypes = [
             'image/jpeg',
@@ -593,7 +731,9 @@
         ];
 
         if (!allowedTypes.includes(file.type)) {
-            throw new Error('اختر صورة JPG أو PNG أو WebP.');
+            throw new Error(
+                'اختر صورة JPG أو PNG أو WebP.'
+            );
         }
 
         if (file.size > 5 * 1024 * 1024) {
@@ -621,7 +761,9 @@
             });
 
         if (error) {
-            throw new Error('فشل رفع الصورة: ' + error.message);
+            throw new Error(
+                'فشل رفع الصورة: ' + error.message
+            );
         }
 
         const { data } = db
@@ -631,6 +773,10 @@
 
         return data.publicUrl;
     }
+
+    // =========================================================
+    // حفظ المنتج مع جميع خياراته
+    // =========================================================
 
     $('product-form').addEventListener('submit', async event => {
         event.preventDefault();
@@ -642,7 +788,7 @@
         button.disabled = true;
 
         try {
-            // التحقق من الخيارات قبل إنشاء المنتج أو تحديثه.
+            // التحقق من الخيارات قبل حفظ المنتج.
             readVariantInputs();
 
             if (!variantRows.length) {
@@ -650,6 +796,8 @@
                     'أضف مقاسًا ولونًا واحدًا على الأقل.'
                 );
             }
+
+            const combinations = new Set();
 
             for (let index = 0; index < variantRows.length; index++) {
                 const variant = variantRows[index];
@@ -665,9 +813,21 @@
                     variant.stock_quantity < 0
                 ) {
                     throw new Error(
-                        `تحقق من الكمية في الصف رقم ${index + 1}.`
+                        `الكمية في الصف رقم ${index + 1} غير صحيحة.`
                     );
                 }
+
+                const key =
+                    `${variant.size.trim().toLowerCase()}::` +
+                    `${variant.color.trim().toLowerCase()}`;
+
+                if (combinations.has(key)) {
+                    throw new Error(
+                        `المقاس ${variant.size} واللون ${variant.color} مكرران.`
+                    );
+                }
+
+                combinations.add(key);
             }
 
             let imageUrl = $('image_url').value.trim() || null;
@@ -685,13 +845,17 @@
                 description: $('description').value.trim(),
                 category: $('category').value.trim(),
                 price: Number($('price').value),
+
                 compare_at_price:
                     $('compare_at_price').value === ''
                         ? null
                         : Number($('compare_at_price').value),
+
                 image_url: imageUrl,
                 images: imageUrl ? [imageUrl] : [],
-                is_published: $('is_published').value === 'true'
+
+                is_published:
+                    $('is_published').value === 'true'
             };
 
             const id = $('product-id').value;
@@ -699,7 +863,7 @@
             say(
                 id
                     ? 'جارٍ تحديث المنتج وخياراته...'
-                    : 'جارٍ إنشاء المنتج وحفظ خياراته...'
+                    : 'جارٍ حفظ المنتج وخياراته...'
             );
 
             const result = id
@@ -717,7 +881,7 @@
 
             if (result.error) {
                 throw new Error(
-                    'فشل حفظ بيانات المنتج: ' + result.error.message
+                    'فشل حفظ المنتج: ' + result.error.message
                 );
             }
 
@@ -727,11 +891,12 @@
 
             say(
                 id
-                    ? 'تم تحديث المنتج وجميع المقاسات والألوان والمخزون بنجاح.'
-                    : 'تمت إضافة المنتج وحفظ جميع المقاسات والألوان والمخزون بنجاح.'
+                    ? 'تم تحديث المنتج وجميع خياراته بنجاح.'
+                    : 'تمت إضافة المنتج وجميع خياراته بنجاح.'
             );
 
             resetForm();
+
             await loadProducts();
 
         } catch (error) {
@@ -769,9 +934,12 @@
             $('description').value = product.description || '';
             $('category').value = product.category || '';
             $('price').value = product.price ?? '';
+
             $('compare_at_price').value =
                 product.compare_at_price ?? '';
+
             $('image_url').value = product.image_url || '';
+
             $('is_published').value =
                 String(!!product.is_published);
 
@@ -799,7 +967,9 @@
 
             if (
                 !product ||
-                !confirm(`هل تريد حذف المنتج «${product.name}»؟`)
+                !confirm(
+                    `هل تريد حذف المنتج «${product.name}»؟`
+                )
             ) {
                 return;
             }
@@ -810,7 +980,10 @@
                 .eq('id', product.id);
 
             if (error) {
-                say('تعذر حذف المنتج: ' + error.message, true);
+                say(
+                    'تعذر حذف المنتج: ' + error.message,
+                    true
+                );
             } else {
                 say('تم حذف المنتج.');
                 await loadProducts();
@@ -819,43 +992,219 @@
     });
 
     // =========================================================
-    // الطلبات
+    // الطلبات وتفاصيل المنتجات
     // =========================================================
 
-    $('refresh-orders').addEventListener('click', async () => {
+    async function loadOrders() {
         const body = $('orders-body');
 
-        body.innerHTML =
-            '<tr><td colspan="5">جارٍ تحميل الطلبات...</td></tr>';
+        body.innerHTML = `
+            <tr>
+                <td colspan="6">
+                    جارٍ تحميل الطلبات وتفاصيل المنتجات...
+                </td>
+            </tr>
+        `;
 
-        const { data, error } = await db
-            .from('orders')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(50);
+        try {
+            // تحميل آخر 50 طلبًا.
+            const { data: orders, error: ordersError } = await db
+                .from('orders')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(50);
 
-        if (error) {
-            body.innerHTML =
-                '<tr><td colspan="5">تعذر تحميل الطلبات.</td></tr>';
+            if (ordersError) throw ordersError;
 
-            say('تعذر قراءة الطلبات: ' + error.message, true);
-            return;
-        }
+            if (!orders || orders.length === 0) {
+                body.innerHTML = `
+                    <tr>
+                        <td colspan="6">لا توجد طلبات.</td>
+                    </tr>
+                `;
+                return;
+            }
 
-        body.innerHTML = (data || []).length
-            ? data.map(order => `
+            // استخدام معرّفات الطلبات لجلب تفاصيل منتجاتها.
+            const orderIds = orders.map(order => order.id);
+
+            const { data: items, error: itemsError } = await db
+                .from('order_items')
+                .select(`
+                    id,
+                    order_id,
+                    product_id,
+                    variant_id,
+                    product_name,
+                    size,
+                    color,
+                    unit_price,
+                    quantity,
+                    line_total,
+                    created_at
+                `)
+                .in('order_id', orderIds)
+                .order('created_at', { ascending: true });
+
+            if (itemsError) throw itemsError;
+
+            // تجميع المنتجات حسب الطلب.
+            const itemsByOrder = new Map();
+
+            for (const item of items || []) {
+                const key = String(item.order_id);
+
+                if (!itemsByOrder.has(key)) {
+                    itemsByOrder.set(key, []);
+                }
+
+                itemsByOrder.get(key).push(item);
+            }
+
+            // بناء جدول الطلبات.
+            body.innerHTML = orders.map(order => {
+                const orderItems =
+                    itemsByOrder.get(String(order.id)) || [];
+
+                const customerName = getFirstValue(order, [
+                    'customer_name',
+                    'full_name',
+                    'name'
+                ]);
+
+                const phone = getFirstValue(order, [
+                    'phone',
+                    'customer_phone'
+                ]);
+
+                const status = getFirstValue(order, [
+                    'status'
+                ]);
+
+                const orderNumber = getFirstValue(order, [
+                    'order_number'
+                ], order.id);
+
+                const date = formatDate(order.created_at);
+
+                const productsHtml = orderItems.length
+                    ? `
+                        <div style="
+                            display:flex;
+                            flex-direction:column;
+                            gap:8px;
+                            min-width:220px;
+                        ">
+                            ${orderItems.map(item => `
+                                <div style="
+                                    padding:10px;
+                                    border:1px solid #ddd;
+                                    border-radius:8px;
+                                    line-height:1.8;
+                                ">
+                                    <strong>
+                                        ${escapeHtml(item.product_name)}
+                                    </strong>
+
+                                    <div>
+                                        المقاس:
+                                        ${escapeHtml(item.size)}
+                                    </div>
+
+                                    <div>
+                                        اللون:
+                                        ${escapeHtml(item.color)}
+                                    </div>
+
+                                    <div>
+                                        الكمية:
+                                        ${Number(item.quantity)}
+                                    </div>
+
+                                    <div>
+                                        سعر الوحدة:
+                                        ${money(item.unit_price)}
+                                    </div>
+
+                                    <div>
+                                        إجمالي المنتج:
+                                        <strong>
+                                            ${money(item.line_total)}
+                                        </strong>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `
+                    : `
+                        <span>
+                            لا توجد تفاصيل منتجات لهذا الطلب.
+                        </span>
+                    `;
+
+                // عرض الإجمالي المخزن في الطلب إذا كان العمود موجودًا.
+                const totalValue = getFirstValue(order, [
+                    'total_amount',
+                    'total',
+                    'grand_total'
+                ], null);
+
+                const totalHtml = totalValue !== null
+                    ? `
+                        <div style="margin-top:8px">
+                            إجمالي الطلب:
+                            <strong>${money(totalValue)}</strong>
+                        </div>
+                    `
+                    : '';
+
+                return `
+                    <tr>
+                        <td>${escapeHtml(orderNumber)}</td>
+
+                        <td>${escapeHtml(customerName)}</td>
+
+                        <td>${escapeHtml(phone)}</td>
+
+                        <td>
+                            ${productsHtml}
+                            ${totalHtml}
+                        </td>
+
+                        <td>${escapeHtml(status)}</td>
+
+                        <td>${escapeHtml(date)}</td>
+                    </tr>
+                `;
+            }).join('');
+
+        } catch (error) {
+            console.error('ORTHIVA orders error:', error);
+
+            body.innerHTML = `
                 <tr>
-                    <td>
-                        ${escapeHtml(order.order_number ?? order.id ?? '—')}
+                    <td colspan="6">
+                        تعذر تحميل الطلبات وتفاصيل المنتجات.
+                        <br>
+                        ${escapeHtml(error.message || String(error))}
                     </td>
-                    <td>${escapeHtml(order.customer_name ?? '—')}</td>
-                    <td>${escapeHtml(order.phone ?? '—')}</td>
-                    <td>${escapeHtml(order.status ?? '—')}</td>
-                    <td>${escapeHtml(order.created_at ?? '—')}</td>
                 </tr>
-            `).join('')
-            : '<tr><td colspan="5">لا توجد طلبات.</td></tr>';
-    });
+            `;
+
+            say(
+                'تعذر تحميل الطلبات: ' +
+                (error.message || String(error)) +
+                ' — تحقق من سياسات RLS.',
+                true
+            );
+        }
+    }
+
+    $('refresh-orders').addEventListener('click', loadOrders);
+
+    // =========================================================
+    // بدء التشغيل
+    // =========================================================
 
     renderVariants();
     loadSession();
