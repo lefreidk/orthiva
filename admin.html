@@ -1,37 +1,1086 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#183D32"><title>إدارة ORTHIVA</title>
-<link rel="stylesheet" href="styles.css">
-<style>
-:root{--forest:#183d32;--ivory:#f7f5ef;--sage:#a8b9a5;--ink:#292f2c}body{background:var(--ivory);color:var(--ink);font-family:Arial,sans-serif;margin:0}.admin-wrap{max-width:1100px;margin:auto;padding:18px}.admin-head{background:var(--forest);color:white;padding:18px;border-radius:18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}.admin-head a{color:white}.panel{background:white;border:1px solid #e1e4dc;border-radius:16px;padding:18px;margin:16px 0;box-shadow:0 6px 24px #183d320d}.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field input,.field textarea,.field select{font:inherit;padding:12px;border:1px solid #ccd4ca;border-radius:10px;background:#fff;min-width:0}.field textarea{min-height:80px}.btn{border:0;border-radius:10px;padding:11px 15px;background:var(--forest);color:white;font:inherit;cursor:pointer}.btn.secondary{background:#e6ebe3;color:var(--forest)}.btn.danger{background:#a93232}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.notice{padding:12px;border-radius:10px;background:#eef3ec;margin:12px 0;white-space:pre-wrap}.hidden{display:none!important}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:650px}th,td{text-align:right;padding:11px;border-bottom:1px solid #e8ebe5}th{background:#f2f4ef}.thumb{width:54px;height:54px;object-fit:cover;border-radius:8px}.muted{color:#68736c;font-size:.92rem}.top-links{display:flex;gap:14px}.top-links a{color:white}.status{font-size:.9rem}.product-form-title{margin-top:0}@media(max-width:500px){.admin-wrap{padding:10px}.panel{padding:13px}.admin-head{padding:14px}}
-</style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script>
-</head><body><main class="admin-wrap">
-<header class="admin-head"><div><h1 style="margin:0">ORTHIVA <span style="font-size:.65em;font-weight:normal">لوحة الإدارة</span></h1><div class="status" id="connection-status">جارٍ تهيئة الاتصال…</div></div><nav class="top-links"><a href="/">المتجر</a><button id="logout" class="btn secondary hidden" type="button">تسجيل الخروج</button></nav></header>
-<div id="notice" class="notice" role="status">سجّل الدخول بحساب المدير.</div>
-<section id="login-panel" class="panel"><h2>دخول المدير</h2><p class="muted">استخدم البريد وكلمة المرور لحساب المدير الذي أنشأته في Supabase Auth.</p><form id="login-form"><div class="form-grid"><label class="field">البريد الإلكتروني<input id="email" type="email" required autocomplete="username"></label><label class="field">كلمة المرور<input id="password" type="password" required autocomplete="current-password"></label></div><div class="actions"><button class="btn" type="submit">تسجيل الدخول</button></div></form></section>
-<div id="admin-area" class="hidden">
-<section class="panel"><h2 class="product-form-title" id="form-heading">إضافة منتج</h2><form id="product-form"><input type="hidden" id="product-id"><div class="form-grid">
-<label class="field">اسم المنتج *<input id="name" required maxlength="180"></label><label class="field">الرابط المختصر (slug) *<input id="slug" required maxlength="200" placeholder="medical-shoes"></label><label class="field">التصنيف *<select id="category" required>
-<option value="medical-shoes">أحذية طبية</option>
-<option value="orthopedic-shoes">أحذية تقويمية</option>
-<option value="diabetic-shoes">أحذية لمرضى السكري</option>
-<option value="medical-clogs">قباقيب طبية</option>
-<option value="orthopedic-insoles">نعال وضمادات تقويمية</option>
-<option value="comfort-shoes">أحذية مريحة يومية</option>
-<option value="medical-accessories">إكسسوارات ومستلزمات طبية</option>
-<option value="other">أخرى</option>
-</select></label><label class="field">السعر بالدينار *<input id="price" type="number" min="0" step="0.01" required></label><label class="field">السعر قبل التخفيض<input id="compare_at_price" type="number" min="0" step="0.01"></label><label class="field">صورة المنتج<input id="image-file" type="file" accept="image/png,image/jpeg,image/webp"></label><label class="field">رابط الصورة (اختياري)<input id="image_url" type="url" placeholder="https://…"></label><label class="field">نشر المنتج<select id="is_published"><option value="false">مسودة — مخفي</option><option value="true">منشور — ظاهر في المتجر</option></select></label><label class="field" style="grid-column:1/-1">الوصف *<textarea id="description" required></textarea></label>
-</div>
-<div class="panel" style="margin:16px 0;background:#f8faf6;border:1px solid #dfe7dc;box-shadow:none">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><h3 style="margin:0">المقاسات والألوان والمخزون</h3><button class="btn secondary" type="button" id="add-variant">+ إضافة خيار</button></div>
-  <p class="muted">أضف كل تركيبة مقاس/لون في سطر مستقل وحدد كمية المخزون. يجب حفظ المنتج أولًا لتتمكن من حفظ الخيارات.</p>
-  <div class="table-wrap"><table style="min-width:520px"><thead><tr><th>المقاس</th><th>اللون</th><th>الكمية</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody id="variants-body"><tr><td colspan="5">أضف خيارًا واحدًا على الأقل.</td></tr></tbody></table></div>
-</div>
-<div class="actions"><button class="btn" type="submit" id="save-product">حفظ المنتج</button><button class="btn secondary" type="button" id="reset-form">إفراغ النموذج</button></div></form></section>
-<section class="panel"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><h2>المنتجات</h2><button id="refresh-products" class="btn secondary" type="button">تحديث القائمة</button></div><div class="table-wrap"><table><thead><tr><th>الصورة</th><th>المنتج</th><th>السعر</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody id="products-body"><tr><td colspan="5">جارٍ التحميل…</td></tr></tbody></table></div></section>
-<section class="panel"><h2>الطلبات</h2><p class="muted">يعرض أحدث الطلبات إذا كانت سياسات RLS تسمح لحساب المدير بقراءتها.</p><button id="refresh-orders" class="btn secondary" type="button">تحميل الطلبات</button><div class="table-wrap"><table><thead><tr><th>رقم الطلب</th><th>العميل</th><th>الهاتف</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody id="orders-body"><tr><td colspan="5">اضغط تحميل الطلبات.</td></tr></tbody></table></div></section>
-</div><p class="muted">الأمان: صلاحيات التعديل والرفع يجب أن تُفرض في Supabase RLS. لا تستخدم مفاتيح sb_secret أو service_role في هذه الصفحة.</p></main>
-<script src="admin.js"></script></body></html>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#171717">
+
+    <title>لوحة إدارة ORTHIVA</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <style>
+        :root {
+            --bg: #f5f6f8;
+            --surface: #ffffff;
+            --text: #202124;
+            --muted: #777d87;
+            --border: #e5e7eb;
+            --primary: #171717;
+            --primary-hover: #333333;
+            --success: #18794e;
+            --danger: #c62828;
+            --radius: 12px;
+            --shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Tajawal', sans-serif;
+            font-size: 15px;
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.6;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Header */
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: #171717;
+            color: white;
+            padding: 15px 24px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.12);
+        }
+
+        .topbar-inner {
+            max-width: 1450px;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 10px;
+            font-weight: 800;
+            font-size: 19px;
+            letter-spacing: 1px;
+        }
+
+        .brand h1 {
+            margin: 0;
+            font-size: 20px;
+            letter-spacing: 1px;
+        }
+
+        .brand p {
+            margin: 3px 0 0;
+            color: #b9b9b9;
+            font-size: 12px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .connection {
+            color: #d0d0d0;
+            font-size: 12px;
+        }
+
+        /* Layout */
+
+        .container {
+            width: min(1450px, calc(100% - 32px));
+            margin: 28px auto 60px;
+        }
+
+        .page-heading {
+            margin-bottom: 24px;
+        }
+
+        .page-heading h2 {
+            margin: 0 0 8px;
+            font-size: 27px;
+        }
+
+        .page-heading p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.8;
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 20px 22px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .panel-header p {
+            margin: 6px 0 0;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .panel-body {
+            padding: 22px;
+        }
+
+        /* Buttons */
+
+        .btn {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            min-height: 42px;
+            padding: 10px 16px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: var(--primary);
+            color: white;
+            font-weight: 700;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn.secondary {
+            background: white;
+            border-color: var(--border);
+            color: var(--text);
+        }
+
+        .btn.secondary:hover {
+            background: #f3f4f6;
+        }
+
+        .btn.danger {
+            background: #fff;
+            color: var(--danger);
+            border-color: #f0caca;
+        }
+
+        .btn.danger:hover {
+            background: #fff1f1;
+        }
+
+        .btn.success {
+            background: var(--success);
+        }
+
+        .btn.small {
+            min-height: 34px;
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+
+        /* Notice */
+
+        #notice {
+            margin-bottom: 22px;
+            padding: 14px 16px;
+            border-radius: 9px;
+            background: #eef3ec;
+            color: #252525;
+            line-height: 1.8;
+            overflow-wrap: anywhere;
+        }
+
+        /* Login */
+
+        .login-wrap {
+            width: min(450px, 100%);
+            margin: 55px auto;
+        }
+
+        .login-logo {
+            width: 66px;
+            height: 66px;
+            margin: 0 auto 18px;
+            display: grid;
+            place-items: center;
+            border-radius: 16px;
+            background: #171717;
+            color: white;
+            font-size: 25px;
+            font-weight: 800;
+        }
+
+        .login-heading {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .login-heading h2 {
+            margin: 0 0 8px;
+            font-size: 25px;
+        }
+
+        .login-heading p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.8;
+        }
+
+        /* Forms */
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .field {
+            min-width: 0;
+        }
+
+        .field.full {
+            grid-column: 1 / -1;
+        }
+
+        .field label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .field input,
+        .field select,
+        .field textarea {
+            display: block;
+            width: 100%;
+            min-height: 45px;
+            padding: 10px 12px;
+            background: white;
+            border: 1px solid #d9dde3;
+            border-radius: 8px;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .field textarea {
+            min-height: 115px;
+            resize: vertical;
+            line-height: 1.8;
+        }
+
+        .field input:focus,
+        .field select:focus,
+        .field textarea:focus {
+            border-color: #777;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .field input[type="file"] {
+            padding: 8px;
+        }
+
+        .field-hint {
+            display: block;
+            margin-top: 7px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.7;
+        }
+
+        .form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 22px;
+        }
+
+        /* Variants */
+
+        .variants-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 26px 0 14px;
+        }
+
+        .variants-heading h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .variants-heading p {
+            margin: 5px 0 0;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .variants-note {
+            padding: 12px 14px;
+            background: #f8f8f8;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: #555;
+            line-height: 1.8;
+            margin-bottom: 14px;
+        }
+
+        .variant-select,
+        #variants-body select,
+        #variants-body input {
+            min-width: 95px;
+            width: 100%;
+            padding: 9px;
+            border: 1px solid #d9dde3;
+            border-radius: 7px;
+            background: white;
+        }
+
+        #variants-body input[type="number"] {
+            min-width: 75px;
+        }
+
+        /* Tables */
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: right;
+        }
+
+        th,
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-size: 13px;
+            font-weight: 800;
+            color: #555b65;
+            white-space: nowrap;
+        }
+
+        td {
+            line-height: 1.8;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        tbody tr:hover {
+            background: #fcfcfc;
+        }
+
+        td small {
+            color: var(--muted);
+            overflow-wrap: anywhere;
+        }
+
+        .thumb {
+            width: 56px;
+            height: 56px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 1px solid var(--border);
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+        }
+
+        /* Order products */
+
+        .order-products {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            min-width: 230px;
+            max-width: 400px;
+        }
+
+        .order-product {
+            padding: 12px;
+            background: #fafafa;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            overflow-wrap: anywhere;
+        }
+
+        .order-product-name {
+            margin-bottom: 6px;
+            font-weight: 800;
+            color: #171717;
+        }
+
+        .order-product-details {
+            color: #555;
+            font-size: 13px;
+            line-height: 1.9;
+        }
+
+        .order-total {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #d9d9d9;
+            font-weight: 800;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: #f0f0f0;
+            color: #333;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        /* Security */
+
+        .security-note {
+            margin-top: 22px;
+            padding: 14px 16px;
+            background: #fff8e6;
+            border: 1px solid #f1dfad;
+            border-radius: 9px;
+            color: #72571b;
+            line-height: 1.9;
+        }
+
+        .security-note strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* Footer */
+
+        .footer {
+            padding: 24px 16px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        /* Responsive */
+
+        @media (max-width: 760px) {
+            .topbar {
+                padding: 12px 14px;
+            }
+
+            .topbar-inner {
+                align-items: flex-start;
+            }
+
+            .brand h1 {
+                font-size: 17px;
+            }
+
+            .brand p {
+                font-size: 11px;
+            }
+
+            .connection {
+                display: none;
+            }
+
+            .container {
+                width: calc(100% - 20px);
+                margin-top: 18px;
+            }
+
+            .page-heading h2 {
+                font-size: 23px;
+            }
+
+            .panel-header,
+            .panel-body {
+                padding: 15px;
+            }
+
+            .panel-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .field.full {
+                grid-column: auto;
+            }
+
+            th,
+            td {
+                padding: 11px;
+            }
+
+            .order-products {
+                min-width: 220px;
+            }
+
+            .form-actions .btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ==================== HEADER ==================== -->
+
+    <header class="topbar">
+        <div class="topbar-inner">
+
+            <a href="index.html" class="brand">
+                <div class="brand-logo">O</div>
+
+                <div>
+                    <h1>ORTHIVA</h1>
+                    <p>لوحة إدارة المتجر</p>
+                </div>
+            </a>
+
+            <div class="header-actions">
+                <span id="connection-status" class="connection">
+                    جارٍ الاتصال...
+                </span>
+
+                <button
+                    type="button"
+                    id="logout"
+                    class="btn secondary hidden">
+                    تسجيل الخروج
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- ==================== NOTIFICATIONS ==================== -->
+
+        <div id="notice" role="status" aria-live="polite">
+            جارٍ تهيئة لوحة الإدارة...
+        </div>
+
+        <!-- ==================== LOGIN ==================== -->
+
+        <section id="login-panel" class="login-wrap">
+
+            <div class="panel">
+                <div class="panel-body">
+
+                    <div class="login-logo">O</div>
+
+                    <div class="login-heading">
+                        <h2>تسجيل دخول المدير</h2>
+
+                        <p>
+                            سجّل الدخول لإدارة منتجات ORTHIVA وطلباته.
+                        </p>
+                    </div>
+
+                    <form id="login-form">
+
+                        <div class="field">
+                            <label for="email">البريد الإلكتروني</label>
+
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                autocomplete="username"
+                                placeholder="admin@example.com"
+                                required
+                            >
+                        </div>
+
+                        <div class="field" style="margin-top:18px">
+                            <label for="password">كلمة المرور</label>
+
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                autocomplete="current-password"
+                                placeholder="أدخل كلمة المرور"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-actions">
+                            <button
+                                type="submit"
+                                class="btn"
+                                style="width:100%">
+                                تسجيل الدخول
+                            </button>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ==================== ADMIN AREA ==================== -->
+
+        <div id="admin-area" class="hidden">
+
+            <div class="page-heading">
+                <h2>لوحة التحكم</h2>
+
+                <p>
+                    إدارة المنتجات والمقاسات والألوان والمخزون
+                    ومتابعة طلبات العملاء.
+                </p>
+            </div>
+
+            <!-- ==================== PRODUCT FORM ==================== -->
+
+            <section class="panel" id="product-section">
+
+                <div class="panel-header">
+                    <div>
+                        <h2 id="form-heading">إضافة منتج</h2>
+
+                        <p>
+                            أدخل بيانات المنتج، ثم أضف جميع المقاسات
+                            والألوان والكميات المتاحة.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        id="reset-form"
+                        class="btn secondary">
+                        منتج جديد
+                    </button>
+                </div>
+
+                <div class="panel-body">
+
+                    <form id="product-form">
+
+                        <input
+                            type="hidden"
+                            id="product-id"
+                            value=""
+                        >
+
+                        <div class="form-grid">
+
+                            <div class="field">
+                                <label for="name">اسم المنتج *</label>
+
+                                <input
+                                    type="text"
+                                    id="name"
+                                    name="name"
+                                    placeholder="مثال: حذاء طبي مريح"
+                                    required
+                                >
+                            </div>
+
+                            <div class="field">
+                                <label for="slug">رابط المنتج *</label>
+
+                                <input
+                                    type="text"
+                                    id="slug"
+                                    name="slug"
+                                    placeholder="medical-shoes"
+                                    required
+                                >
+                            </div>
+
+                            <div class="field">
+                                <label for="category">التصنيف *</label>
+
+                                <select id="category" name="category" required>
+                                    <option value="medical-shoes">
+                                        أحذية طبية
+                                    </option>
+
+                                    <option value="medical-clogs">
+                                        قباقيب طبية
+                                    </option>
+
+                                    <option value="work-shoes">
+                                        أحذية العمل
+                                    </option>
+
+                                    <option value="accessories">
+                                        إكسسوارات
+                                    </option>
+
+                                    <option value="other">
+                                        أخرى
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="field">
+                                <label for="price">السعر بالدينار الجزائري *</label>
+
+                                <input
+                                    type="number"
+                                    id="price"
+                                    name="price"
+                                    min="0"
+                                    step="0.01"
+                                    placeholder="3500"
+                                    required
+                                >
+                            </div>
+
+                            <div class="field">
+                                <label for="compare_at_price">
+                                    السعر قبل التخفيض
+                                </label>
+
+                                <input
+                                    type="number"
+                                    id="compare_at_price"
+                                    name="compare_at_price"
+                                    min="0"
+                                    step="0.01"
+                                    placeholder="4000"
+                                >
+
+                                <small class="field-hint">
+                                    اتركه فارغًا إذا لم يوجد تخفيض.
+                                </small>
+                            </div>
+
+                            <div class="field">
+                                <label for="is_published">حالة النشر</label>
+
+                                <select id="is_published" name="is_published">
+                                    <option value="false">مسودة</option>
+                                    <option value="true">منشور</option>
+                                </select>
+                            </div>
+
+                            <div class="field full">
+                                <label for="description">وصف المنتج</label>
+
+                                <textarea
+                                    id="description"
+                                    name="description"
+                                    placeholder="اكتب وصف المنتج ومميزاته..."
+                                ></textarea>
+                            </div>
+
+                            <div class="field full">
+                                <label for="image_url">
+                                    رابط صورة المنتج
+                                </label>
+
+                                <input
+                                    type="url"
+                                    id="image_url"
+                                    name="image_url"
+                                    placeholder="https://example.com/image.jpg"
+                                >
+                            </div>
+
+                            <div class="field full">
+                                <label for="image-file">
+                                    أو رفع صورة من الجهاز
+                                </label>
+
+                                <input
+                                    type="file"
+                                    id="image-file"
+                                    name="image-file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                >
+
+                                <small class="field-hint">
+                                    الصيغ المدعومة JPG وPNG وWebP،
+                                    بحد أقصى 5 ميغابايت.
+                                </small>
+                            </div>
+
+                        </div>
+
+                        <!-- ==================== VARIANTS ==================== -->
+
+                        <div class="variants-heading">
+                            <div>
+                                <h3>المقاسات والألوان والمخزون</h3>
+
+                                <p>
+                                    كل صف يمثل تركيبة مستقلة من المقاس واللون.
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                id="add-variant"
+                                class="btn secondary">
+                                + إضافة مقاس ولون
+                            </button>
+                        </div>
+
+                        <div class="variants-note">
+                            مثال: مقاس 38 باللون الأسود، ومقاس 39 باللون
+                            الأسود، ومقاس 38 باللون الأبيض. لكل تركيبة
+                            مخزون خاص بها.
+                        </div>
+
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>المقاس</th>
+                                        <th>اللون</th>
+                                        <th>الكمية</th>
+                                        <th>الحالة</th>
+                                        <th>الإجراء</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody id="variants-body">
+                                    <tr>
+                                        <td colspan="5">
+                                            أضف مقاسًا ولونًا واحدًا على الأقل.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="form-actions">
+
+                            <button
+                                type="submit"
+                                id="save-product"
+                                class="btn">
+                                حفظ المنتج
+                            </button>
+
+                            <button
+                                type="button"
+                                id="reset-form-bottom"
+                                class="btn secondary"
+                                onclick="document.getElementById('reset-form').click()">
+                                إعادة تعيين
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </section>
+
+            <!-- ==================== PRODUCTS LIST ==================== -->
+
+            <section class="panel" id="products-section">
+
+                <div class="panel-header">
+                    <div>
+                        <h2>المنتجات</h2>
+
+                        <p>
+                            جميع المنتجات المسجلة في قاعدة البيانات.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        id="refresh-products"
+                        class="btn secondary">
+                        ↻ تحديث المنتجات
+                    </button>
+                </div>
+
+                <div class="table-container">
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>الصورة</th>
+                                <th>المنتج</th>
+                                <th>السعر</th>
+                                <th>النشر</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="products-body">
+                            <tr>
+                                <td colspan="5">
+                                    سجّل الدخول لتحميل المنتجات.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                </div>
+
+            </section>
+
+            <!-- ==================== ORDERS ==================== -->
+
+            <section class="panel" id="orders-section">
+
+                <div class="panel-header">
+                    <div>
+                        <h2>طلبات العملاء</h2>
+
+                        <p>
+                            عرض تفاصيل المنتجات والمقاسات والألوان
+                            والكميات المطلوبة لكل طلب.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        id="refresh-orders"
+                        class="btn secondary">
+                        ↻ تحديث الطلبات
+                    </button>
+                </div>
+
+                <div class="table-container">
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>رقم الطلب</th>
+                                <th>العميل</th>
+                                <th>الهاتف</th>
+                                <th>المنتجات المطلوبة</th>
+                                <th>الحالة</th>
+                                <th>التاريخ</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="orders-body">
+                            <tr>
+                                <td colspan="6">
+                                    اضغط على «تحديث الطلبات» لعرض الطلبات.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                </div>
+
+            </section>
+
+            <!-- ==================== SECURITY NOTICE ==================== -->
+
+            <div class="security-note">
+                <strong>الأمان والصلاحيات</strong>
+
+                صلاحيات القراءة والتعديل والحذف ورفع الصور يجب أن
+                تُفرض من خلال سياسات Supabase المناسبة. لا تضع مفاتيح
+                sb_secret أو service_role في ملفات الواجهة.
+            </div>
+
+        </div>
+
+    </main>
+
+    <footer class="footer">
+        ORTHIVA — لوحة إدارة المتجر
+    </footer>
+
+    <!-- ==================== SCRIPTS ==================== -->
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="admin.js"></script>
+
+</body>
+</html>
