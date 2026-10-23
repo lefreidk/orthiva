@@ -9,6 +9,13 @@
     let products = [];
     let variantRows = [];
 
+    // State for Multiple Images and Multi-select
+    let productImages = []; // Array of { id, url, file?, isExisting }
+    let availableSizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'];
+    let availableColors = ['أسود', 'أبيض', 'بني', 'بيج', 'رمادي', 'كحلي', 'وردي', 'أزرق', 'أخضر'];
+    let selectedSizes = new Set();
+    let selectedColors = new Set();
+
     // =========================================================
     // أدوات مساعدة
     // =========================================================
@@ -185,6 +192,159 @@
 
     db.auth.onAuthStateChange((_event, session) => {
         toggleLoggedIn(session?.user || null);
+    });
+
+    // =========================================================
+    // UI Rendering: Multiple Images & Multi-select Pills
+    // =========================================================
+
+    function renderImagePreviews() {
+        const container = $('image-previews');
+        if (!container) return;
+
+        if (productImages.length === 0) {
+            container.innerHTML = '<p style="color:var(--muted); font-size:13px;">لا توجد صور مضافة حاليًا.</p>';
+            return;
+        }
+
+        container.innerHTML = productImages.map((img, index) => `
+            <div class="preview-thumb-wrap" data-img-id="${img.id}">
+                <img src="${img.url}" alt="">
+                <button type="button" class="preview-thumb-remove" data-remove-img="${img.id}" title="حذف">×</button>
+                ${index === 0 ? '<span class="preview-thumb-badge">رئيسية</span>' : ''}
+            </div>
+        `).join('');
+    }
+
+    function renderSizePills() {
+        const container = $('size-pills');
+        if (!container) return;
+
+        container.innerHTML = availableSizes.map(size => `
+            <div class="pill ${selectedSizes.has(size) ? 'selected' : ''}" data-size-pill="${escapeHtml(size)}">
+                ${escapeHtml(size)}
+            </div>
+        `).join('');
+    }
+
+    function renderColorPills() {
+        const container = $('color-pills');
+        if (!container) return;
+
+        container.innerHTML = availableColors.map(color => `
+            <div class="pill ${selectedColors.has(color) ? 'selected' : ''}" data-color-pill="${escapeHtml(color)}">
+                ${escapeHtml(color)}
+            </div>
+        `).join('');
+    }
+
+    // =========================================================
+    // Event Listeners: Images & Multi-select
+    // =========================================================
+
+    // Image Handlers
+    $('add-image-url-btn').addEventListener('click', () => {
+        const urlInput = $('image-url-input');
+        const url = urlInput.value.trim();
+        if (url) {
+            productImages.push({ id: crypto.randomUUID(), url, isExisting: false });
+            urlInput.value = '';
+            renderImagePreviews();
+        }
+    });
+
+    $('image-files').addEventListener('change', (e) => {
+        Array.from(e.target.files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                productImages.push({ id: crypto.randomUUID(), url: event.target.result, file, isExisting: false });
+                renderImagePreviews();
+            };
+            reader.readAsDataURL(file);
+        });
+        e.target.value = ''; // Reset
+    });
+
+    $('image-previews').addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('[data-remove-img]');
+        if (removeBtn) {
+            productImages = productImages.filter(img => img.id !== removeBtn.dataset.removeImg);
+            renderImagePreviews();
+        }
+    });
+
+    // Pill Handlers
+    $('size-pills').addEventListener('click', (e) => {
+        const pill = e.target.closest('[data-size-pill]');
+        if (pill) {
+            const size = pill.dataset.sizePill;
+            if (selectedSizes.has(size)) selectedSizes.delete(size);
+            else selectedSizes.add(size);
+            renderSizePills();
+        }
+    });
+
+    $('add-custom-size-btn').addEventListener('click', () => {
+        const input = $('custom-size-input');
+        const size = input.value.trim();
+        if (size && !availableSizes.includes(size)) {
+            availableSizes.push(size);
+            selectedSizes.add(size);
+            renderSizePills();
+            input.value = '';
+        }
+    });
+
+    $('color-pills').addEventListener('click', (e) => {
+        const pill = e.target.closest('[data-color-pill]');
+        if (pill) {
+            const color = pill.dataset.colorPill;
+            if (selectedColors.has(color)) selectedColors.delete(color);
+            else selectedColors.add(color);
+            renderColorPills();
+        }
+    });
+
+    $('add-custom-color-btn').addEventListener('click', () => {
+        const input = $('custom-color-input');
+        const color = input.value.trim();
+        if (color && !availableColors.includes(color)) {
+            availableColors.push(color);
+            selectedColors.add(color);
+            renderColorPills();
+            input.value = '';
+        }
+    });
+
+    $('generate-variants-btn').addEventListener('click', () => {
+        if (selectedSizes.size === 0 || selectedColors.size === 0) {
+            say('يرجى اختيار مقاس ولون واحد على الأقل.', true);
+            return;
+        }
+
+        readVariantInputs();
+        const existingVariants = new Map(variantRows.map(v => [`${v.size.toLowerCase()}::${v.color.toLowerCase()}`, v]));
+        const defaultStock = Number($('default-stock-input').value) || 0;
+        const newVariantRows = [];
+
+        for (const size of selectedSizes) {
+            for (const color of selectedColors) {
+                const key = `${size.toLowerCase()}::${color.toLowerCase()}`;
+                if (existingVariants.has(key)) {
+                    newVariantRows.push(existingVariants.get(key));
+                } else {
+                    newVariantRows.push({
+                        size,
+                        color,
+                        stock_quantity: defaultStock,
+                        is_active: true
+                    });
+                }
+            }
+        }
+
+        variantRows = newVariantRows;
+        renderVariants();
     });
 
     // =========================================================
@@ -685,8 +845,14 @@
         $('product-form').reset();
 
         variantRows = [];
+        productImages = [];
+        selectedSizes.clear();
+        selectedColors.clear();
 
         renderVariants();
+        renderImagePreviews();
+        renderSizePills();
+        renderColorPills();
 
         $('product-id').value = '';
         $('category').value = 'medical-shoes';
@@ -694,8 +860,6 @@
 
         $('form-heading').textContent = 'إضافة منتج';
         $('save-product').textContent = 'حفظ المنتج';
-
-        $('image-file').value = '';
     }
 
     $('reset-form').addEventListener('click', event => {
@@ -830,13 +994,16 @@
                 combinations.add(key);
             }
 
-            let imageUrl = $('image_url').value.trim() || null;
-
-            const file = $('image-file').files[0];
-
-            if (file) {
-                say('جارٍ رفع الصورة...');
-                imageUrl = await uploadImage(file);
+            // Upload images and prepare final array
+            const finalImages = [];
+            for (const img of productImages) {
+                if (img.file) {
+                    say(`جارٍ رفع صورة: ${img.file.name}...`);
+                    const url = await uploadImage(img.file);
+                    finalImages.push(url);
+                } else {
+                    finalImages.push(img.url);
+                }
             }
 
             const payload = {
@@ -851,8 +1018,8 @@
                         ? null
                         : Number($('compare_at_price').value),
 
-                image_url: imageUrl,
-                images: imageUrl ? [imageUrl] : [],
+                images: finalImages,
+                image_url: finalImages[0] || null,
 
                 is_published:
                     $('is_published').value === 'true'
@@ -938,7 +1105,22 @@
             $('compare_at_price').value =
                 product.compare_at_price ?? '';
 
-            $('image_url').value = product.image_url || '';
+            // Populate images
+            productImages = (product.images || []).map(url => ({ id: crypto.randomUUID(), url, isExisting: true }));
+            if (productImages.length === 0 && product.image_url) {
+                productImages.push({ id: crypto.randomUUID(), url: product.image_url, isExisting: true });
+            }
+            renderImagePreviews();
+
+            // Populate selected sizes/colors
+            selectedSizes.clear();
+            selectedColors.clear();
+            (product.variants || []).forEach(v => {
+                selectedSizes.add(v.size);
+                selectedColors.add(v.color);
+            });
+            renderSizePills();
+            renderColorPills();
 
             $('is_published').value =
                 String(!!product.is_published);
