@@ -460,6 +460,84 @@
             border: 1px solid var(--border);
         }
 
+        /* Multiple Images & Multi-Select Pills */
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .pill:hover {
+            border-color: #999;
+            background: #fcfcfc;
+        }
+
+        .pill.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .preview-thumb-wrap {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        .preview-thumb-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-thumb-remove {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 22px;
+            height: 22px;
+            background: rgba(0, 0, 0, 0.75);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .preview-thumb-remove:hover {
+            background: var(--danger);
+        }
+
+        .preview-thumb-badge {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+
         .actions {
             display: flex;
             flex-wrap: wrap;
@@ -858,34 +936,38 @@
                             </div>
 
                             <div class="field full">
-                                <label for="image_url">
-                                    رابط صورة المنتج
-                                </label>
+                                <label>صور المنتج (يمكن إضافة صور متعددة)</label>
 
-                                <input
-                                    type="url"
-                                    id="image_url"
-                                    name="image_url"
-                                    placeholder="https://example.com/image.jpg"
-                                >
-                            </div>
-
-                            <div class="field full">
-                                <label for="image-file">
-                                    أو رفع صورة من الجهاز
-                                </label>
+                                <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                                    <input
+                                        type="url"
+                                        id="image-url-input"
+                                        placeholder="أدخل رابط صورة (https://...) ثم اضغط إضافة"
+                                        style="flex: 1;"
+                                    >
+                                    <button
+                                        type="button"
+                                        id="add-image-url-btn"
+                                        class="btn secondary">
+                                        إضافة رابط
+                                    </button>
+                                </div>
 
                                 <input
                                     type="file"
-                                    id="image-file"
-                                    name="image-file"
+                                    id="image-files"
+                                    name="image-files"
                                     accept="image/jpeg,image/png,image/webp"
+                                    multiple
                                 >
 
                                 <small class="field-hint">
-                                    الصيغ المدعومة JPG وPNG وWebP،
-                                    بحد أقصى 5 ميغابايت.
+                                    يمكنك اختيار عدة صور معًا من جهازك أو إضافة روابط. الصيغ المدعومة JPG وPNG وWebP (أقصى حجم 5MB للصورة).
                                 </small>
+
+                                <div id="image-previews" style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px;">
+                                    <!-- Previews populated by JS -->
+                                </div>
                             </div>
 
                         </div>
@@ -897,7 +979,7 @@
                                 <h3>المقاسات والألوان والمخزون</h3>
 
                                 <p>
-                                    كل صف يمثل تركيبة مستقلة من المقاس واللون.
+                                    حدد المقاسات والألوان لتوليد التشكيلات تلقائيًا، أو أضف التشكيلات يدويًا.
                                 </p>
                             </div>
 
@@ -905,14 +987,74 @@
                                 type="button"
                                 id="add-variant"
                                 class="btn secondary">
-                                + إضافة مقاس ولون
+                                + إضافة تركيبة يدويًا
                             </button>
                         </div>
 
-                        <div class="variants-note">
-                            مثال: مقاس 38 باللون الأسود، ومقاس 39 باللون
-                            الأسود، ومقاس 38 باللون الأبيض. لكل تركيبة
-                            مخزون خاص بها.
+                        <div class="variants-note" style="display: flex; flex-direction: column; gap: 16px;">
+                            <div>
+                                <strong>1. اختر المقاسات المطلوبة:</strong>
+                                <div id="size-pills" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                                    <!-- Populated via JS -->
+                                </div>
+                                <div style="display: flex; gap: 8px; margin-top: 8px; align-items: center;">
+                                    <input
+                                        type="text"
+                                        id="custom-size-input"
+                                        placeholder="مقاس مخصص (مثال: 47)"
+                                        style="max-width: 220px; min-height: 38px; padding: 6px 12px;"
+                                    >
+                                    <button
+                                        type="button"
+                                        id="add-custom-size-btn"
+                                        class="btn secondary small">
+                                        + إضافة مقاس
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style="border-top: 1px dashed var(--border); padding-top: 12px;">
+                                <strong>2. اختر الألوان المطلوبة:</strong>
+                                <div id="color-pills" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
+                                    <!-- Populated via JS -->
+                                </div>
+                                <div style="display: flex; gap: 8px; margin-top: 8px; align-items: center;">
+                                    <input
+                                        type="text"
+                                        id="custom-color-input"
+                                        placeholder="لون مخصص (مثال: عنابي)"
+                                        style="max-width: 220px; min-height: 38px; padding: 6px 12px;"
+                                    >
+                                    <button
+                                        type="button"
+                                        id="add-custom-color-btn"
+                                        class="btn secondary small">
+                                        + إضافة لون
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 12px;">
+                                <div>
+                                    <label for="default-stock-input" style="font-size: 13px; font-weight: 700; margin-bottom: 4px; display: block;">الكمية الافتراضية للتركيبات الجديدة:</label>
+                                    <input
+                                        type="number"
+                                        id="default-stock-input"
+                                        value="10"
+                                        min="0"
+                                        step="1"
+                                        style="width: 120px; min-height: 38px; padding: 6px 10px;"
+                                    >
+                                </div>
+
+                                <button
+                                    type="button"
+                                    id="generate-variants-btn"
+                                    class="btn"
+                                    style="margin-top: 20px;">
+                                    ⚡ توليد التشكيلات تلقائيًا
+                                </button>
+                            </div>
                         </div>
 
                         <div class="table-container">
