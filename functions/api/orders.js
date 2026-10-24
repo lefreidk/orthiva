@@ -13,9 +13,14 @@ export async function onRequestPost({ request, env }) {
     return json({ error: 'إعدادات الخادم ناقصة. أضف SUPABASE_URL وSUPABASE_ANON_KEY إلى Cloudflare Pages.' }, 500);
   }
 
+  const declaredLength = Number(request.headers.get('content-length') || 0);
+  if (declaredLength > 65536) return json({ error: 'حجم بيانات الطلب أكبر من المسموح.' }, 413);
   let body;
   try { body = await request.json(); }
   catch { return json({ error: 'بيانات الطلب غير صالحة.' }, 400); }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return json({ error: 'صيغة بيانات الطلب غير صالحة.' }, 400);
+  }
 
   const clean = (v, max) => typeof v === 'string' ? v.trim().slice(0, max) : '';
   const customer_name = clean(body.customer_name, 120);
@@ -25,14 +30,18 @@ export async function onRequestPost({ request, env }) {
   const address = clean(body.address, 500);
   const customer_note = clean(body.customer_note, 1000);
   const items = Array.isArray(body.items) ? body.items : [];
+  const request_id = clean(body.request_id, 36);
 
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(request_id)) {
+    return json({ error: 'معرّف الطلب غير صالح. أعد المحاولة.' }, 400);
+  }
   if (!customer_name || !phone || !wilaya || !municipality || !address) {
     return json({ error: 'يرجى ملء الاسم والهاتف والولاية والبلدية والعنوان.' }, 400);
   }
   if (!/^[+0-9 ()-]{8,40}$/.test(phone)) return json({ error: 'رقم الهاتف غير صالح.' }, 400);
   if (items.length < 1 || items.length > 20) return json({ error: 'السلة فارغة أو تحتوي على عدد غير مسموح من المنتجات.' }, 400);
   for (const item of items) {
-    if (!item || typeof item.variant_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(item.variant_id)) {
+    if (!item || typeof item.variant_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(item.variant_id)) {
       return json({ error: 'أحد خيارات المنتج غير صالح. أعد اختيار المنتج.' }, 400);
     }
     if (!Number.isInteger(Number(item.quantity)) || Number(item.quantity) < 1 || Number(item.quantity) > 20) {
@@ -41,6 +50,14 @@ export async function onRequestPost({ request, env }) {
   }
 
   try {
+    const consolidated = new Map();
+    for (const item of items) {
+      consolidated.set(item.variant_id, (consolidated.get(item.variant_id) || 0) + Number(item.quantity));
+    }
+    if ([...consolidated.values()].some(quantity => quantity > 20)) {
+      return json({ error: 'إجمالي كمية أحد الخيارات يتجاوز الحد المسموح.' }, 400);
+    }
+
     const response = await fetch(`${env.SUPABASE_URL.replace(/\/$/, '')}/rest/v1/rpc/create_orthiva_order`, {
       method: 'POST',
       headers: {
@@ -55,7 +72,8 @@ export async function onRequestPost({ request, env }) {
         p_municipality: municipality,
         p_address: address,
         p_customer_note: customer_note || null,
-        p_items: items.map(i => ({ variant_id: i.variant_id, quantity: Number(i.quantity) })),
+        p_items: [...consolidated.entries()].map(([variant_id, quantity]) => ({ variant_id, quantity })),
+        p_client_request_id: request_id,
       }),
     });
     const result = await response.json().catch(() => null);
