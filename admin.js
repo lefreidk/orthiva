@@ -285,15 +285,47 @@
         }
     });
 
-    $('add-custom-size-btn').addEventListener('click', () => {
+    // إضافة مقاس مخصص: منع إرسال نموذج المنتج بالخطأ، ومعالجة المقاسات المكررة.
+    function addCustomSize(event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
         const input = $('custom-size-input');
-        const size = input.value.trim();
-        if (size && !availableSizes.includes(size)) {
+        if (!input) return;
+
+        const rawSize = input.value.trim();
+        if (!rawSize) {
+            say('أدخل المقاس أولًا، مثل 47.', true);
+            input.focus();
+            return;
+        }
+
+        // المقاسات أرقام عادةً، لكن نسمح أيضًا بمقاسات نصية مثل XL.
+        const size = /^\d+$/.test(rawSize) ? String(Number(rawSize)) : rawSize;
+        const existing = availableSizes.find(item =>
+            String(item).trim().toLocaleLowerCase() === size.toLocaleLowerCase()
+        );
+
+        if (existing !== undefined) {
+            selectedSizes.add(String(existing));
+            renderSizePills();
+            say(`المقاس ${existing} موجود بالفعل وتم تحديده.`);
+        } else {
             availableSizes.push(size);
             selectedSizes.add(size);
             renderSizePills();
-            input.value = '';
+            say(`تمت إضافة المقاس ${size} وتحديده.`);
         }
+
+        input.value = '';
+        input.focus();
+    }
+
+    $('add-custom-size-btn').addEventListener('click', addCustomSize);
+    $('custom-size-input').addEventListener('keydown', event => {
+        if (event.key === 'Enter') addCustomSize(event);
     });
 
     $('color-pills').addEventListener('click', (e) => {
