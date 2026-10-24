@@ -3,6 +3,10 @@
 
 -- orders.order_number is already an IDENTITY column in this database.
 -- Leave it out of INSERT statements so PostgreSQL generates it automatically.
+-- Idempotency key: repeated submissions of the same checkout return the same order.
+alter table public.orders add column if not exists client_request_id uuid;
+create unique index if not exists orders_client_request_id_unique
+  on public.orders (client_request_id) where client_request_id is not null;
 
 create or replace function public.create_orthiva_order(
   p_customer_name text,
@@ -11,7 +15,8 @@ create or replace function public.create_orthiva_order(
   p_municipality text,
   p_address text,
   p_customer_note text,
-  p_items jsonb
+  p_items jsonb,
+  p_client_request_id uuid
 )
 returns table(order_id uuid, order_number bigint)
 language plpgsql
@@ -34,6 +39,18 @@ declare
   v_subtotal numeric := 0;
   v_count integer := 0;
 begin
+  if p_client_request_id is null then
+    raise exception 'معرّف الطلب مطلوب';
+  end if;
+
+  -- A retry after a timeout must not create a second order or reserve stock twice.
+  select o.id, o.order_number into v_order_id, v_order_number
+  from public.orders o where o.client_request_id = p_client_request_id;
+  if found then
+    return query select v_order_id, v_order_number;
+    return;
+  end if;
+
   if length(trim(coalesce(p_customer_name, ''))) < 2 or length(trim(coalesce(p_phone, ''))) < 8
      or length(trim(coalesce(p_wilaya, ''))) < 1 or length(trim(coalesce(p_municipality, ''))) < 1
      or length(trim(coalesce(p_address, ''))) < 3 then
@@ -75,11 +92,11 @@ begin
 
   insert into public.orders (
     customer_name, phone, wilaya, municipality, address, customer_note,
-    subtotal, delivery_fee, total, status
+    subtotal, delivery_fee, total, status, client_request_id
   ) values (
     trim(p_customer_name), trim(p_phone), trim(p_wilaya), trim(p_municipality),
     trim(p_address), nullif(trim(coalesce(p_customer_note, '')), ''),
-    v_subtotal, 0, v_subtotal, 'new'
+    v_subtotal, 0, v_subtotal, 'new', p_client_request_id
   ) returning id, orders.order_number into v_order_id, v_order_number;
 
   for v_item in select value from jsonb_array_elements(p_items)
@@ -106,5 +123,8 @@ end;
 $function$;
 
 -- Only public checkout can execute this narrow function; table writes remain behind RLS.
-revoke all on function public.create_orthiva_order(text, text, text, text, text, text, jsonb) from public;
-grant execute on function public.create_orthiva_order(text, text, text, text, text, text, jsonb) to anon, authenticated;
+revoke all on function public.create_orthiva_order(text, text, text, text, text, text, jsonb, uuid) from public;
+grant execute on function public.create_orthiva_order(text, text, text, text, text, text, jsonb, uuid) to anon, authenticated;
+
+-- Remove the previous non-idempotent overload, if this project had an earlier version.
+drop function if exists public.create_orthiva_order(text, text, text, text, text, text, jsonb);

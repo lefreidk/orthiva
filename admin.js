@@ -11,6 +11,7 @@
 
     // State for Multiple Images and Multi-select
     let productImages = []; // Array of { id, url, file?, isExisting }
+    let newlyUploadedImagePaths = [];
     let availableSizes = ['36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'];
     let availableColors = ['أسود', 'أبيض', 'بني', 'بيج', 'رمادي', 'كحلي', 'وردي', 'أزرق', 'أخضر'];
     let selectedSizes = new Set();
@@ -337,6 +338,8 @@
                         size,
                         color,
                         stock_quantity: defaultStock,
+                        original_stock_quantity: null,
+                        stock_changed: true,
                         is_active: true
                     });
                 }
@@ -380,7 +383,8 @@
                     size,
                     color,
                     stock_quantity,
-                    is_active
+                    is_active,
+                    updated_at
                 )
             `)
             .order('created_at', { ascending: false });
@@ -644,6 +648,7 @@
                 color: color.value.trim(),
                 stock_quantity:
                     stock.value === '' ? NaN : Number(stock.value),
+                stock_changed: !variantRows[index].id || Number(stock.value) !== Number(variantRows[index].original_stock_quantity ?? variantRows[index].stock_quantity),
                 is_active: active.value === 'true'
             });
         }
@@ -846,6 +851,7 @@
 
         variantRows = [];
         productImages = [];
+        newlyUploadedImagePaths = [];
         selectedSizes.clear();
         selectedColors.clear();
 
@@ -930,6 +936,7 @@
             );
         }
 
+        newlyUploadedImagePaths.push(path);
         const { data } = db
             .storage
             .from('orthiva-products')
@@ -1025,36 +1032,42 @@
                     $('is_published').value === 'true'
             };
 
-            const id = $('product-id').value;
+            const id = $('product-id').value || null;
 
             say(
                 id
-                    ? 'جارٍ تحديث المنتج وخياراته...'
-                    : 'جارٍ حفظ المنتج وخياراته...'
+                    ? 'جارٍ تحديث المنتج وخياراته في عملية واحدة...'
+                    : 'جارٍ حفظ المنتج وخياراته في عملية واحدة...'
             );
 
-            const result = id
-                ? await db
-                    .from('products')
-                    .update(payload)
-                    .eq('id', id)
-                    .select()
-                    .single()
-                : await db
-                    .from('products')
-                    .insert(payload)
-                    .select()
-                    .single();
+            // The database RPC commits the product and all variants atomically.
+            const variantsPayload = variantRows.map(variant => ({
+                id: variant.id || null,
+                size: variant.size,
+                color: variant.color,
+                stock_quantity: variant.stock_quantity,
+                stock_changed: Boolean(variant.stock_changed || !variant.id),
+                expected_updated_at: variant.updated_at || null,
+                is_active: variant.is_active !== false
+            }));
 
-            if (result.error) {
+            const { data: savedProductId, error: saveError } = await db.rpc(
+                'save_orthiva_product',
+                {
+                    p_product_id: id,
+                    p_product: payload,
+                    p_variants: variantsPayload
+                }
+            );
+
+            if (saveError) {
                 throw new Error(
-                    'فشل حفظ المنتج: ' + result.error.message
+                    'فشل حفظ المنتج وخياراته دون تطبيق تغييرات جزئية: ' + saveError.message
                 );
             }
-
-            const savedProduct = result.data;
-
-            await saveVariants(savedProduct.id);
+            if (!savedProductId) {
+                throw new Error('لم تُرجع قاعدة البيانات معرّف المنتج المحفوظ.');
+            }
 
             say(
                 id
@@ -1062,11 +1075,22 @@
                     : 'تمت إضافة المنتج وجميع خياراته بنجاح.'
             );
 
+            // Images are now referenced by the committed product; do not remove them.
+            newlyUploadedImagePaths = [];
             resetForm();
 
             await loadProducts();
 
         } catch (error) {
+            // Avoid leaving newly uploaded orphan files if the database transaction fails.
+            if (newlyUploadedImagePaths.length) {
+                try {
+                    await db.storage.from('orthiva-products').remove(newlyUploadedImagePaths);
+                } catch (cleanupError) {
+                    console.warn('ORTHIVA image cleanup failed:', cleanupError);
+                }
+                newlyUploadedImagePaths = [];
+            }
             console.error('ORTHIVA save error:', error);
 
             say(
@@ -1126,7 +1150,9 @@
                 String(!!product.is_published);
 
             variantRows = (product.variants || []).map(variant => ({
-                ...variant
+                ...variant,
+                original_stock_quantity: Number(variant.stock_quantity),
+                stock_changed: false
             }));
 
             renderVariants();
@@ -1156,18 +1182,19 @@
                 return;
             }
 
+            // Archive instead of hard-delete so historical order records remain intact.
             const { error } = await db
                 .from('products')
-                .delete()
+                .update({ is_published: false })
                 .eq('id', product.id);
 
             if (error) {
                 say(
-                    'تعذر حذف المنتج: ' + error.message,
+                    'تعذر إخفاء المنتج: ' + error.message,
                     true
                 );
             } else {
-                say('تم حذف المنتج.');
+                say('تم إخفاء المنتج من المتجر مع الحفاظ على سجل الطلبات.');
                 await loadProducts();
             }
         }
