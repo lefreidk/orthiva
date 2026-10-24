@@ -991,12 +991,36 @@
         button.disabled = true;
 
         try {
-            // التحقق من الخيارات قبل حفظ المنتج.
-            readVariantInputs();
+            // إذا اختار المستخدم مقاسات وألوانًا ولم يضغط زر التوليد،
+            // أنشئ التركيبات تلقائيًا قبل الحفظ بدل رفض المنتج.
+            if (!variantRows.length && selectedSizes.size > 0 && selectedColors.size > 0) {
+                const defaultStock = Number($('default-stock-input').value);
+                const stock = Number.isInteger(defaultStock) && defaultStock >= 0
+                    ? defaultStock
+                    : 0;
+
+                variantRows = [];
+                for (const size of selectedSizes) {
+                    for (const color of selectedColors) {
+                        variantRows.push({
+                            size: String(size).trim(),
+                            color: String(color).trim(),
+                            stock_quantity: stock,
+                            original_stock_quantity: null,
+                            stock_changed: true,
+                            is_active: true
+                        });
+                    }
+                }
+                renderVariants();
+            }
+
+            // قراءة أي تغييرات أجراها المستخدم في جدول التركيبات.
+            if (variantRows.length) readVariantInputs();
 
             if (!variantRows.length) {
                 throw new Error(
-                    'أضف مقاسًا ولونًا واحدًا على الأقل.'
+                    'اختر مقاسًا واحدًا على الأقل ولونًا واحدًا على الأقل، ثم أعد الحفظ.'
                 );
             }
 
