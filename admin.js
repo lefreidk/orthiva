@@ -516,170 +516,49 @@
             return;
         }
 
-        const defaultSizes = [
-            '36', '37', '38', '39', '40',
-            '41', '42', '43', '44', '45', '46'
-        ];
-
-        const defaultColors = [
-            'أسود',
-            'أبيض',
-            'بني',
-            'بيج',
-            'رمادي',
-            'كحلي',
-            'وردي',
-            'أزرق',
-            'أخضر'
-        ];
-
-        body.innerHTML = variantRows.map((variant, index) => {
-            const sizes = [...defaultSizes];
-            const colors = [...defaultColors];
-
-            const currentSize = String(variant.size ?? '');
-            const currentColor = String(variant.color ?? '');
-
-            if (currentSize && !sizes.includes(currentSize)) {
-                sizes.unshift(currentSize);
-            }
-
-            if (currentColor && !colors.includes(currentColor)) {
-                colors.unshift(currentColor);
-            }
-
-            return `
-                <tr data-variant-row="${index}">
-                    <td>
-                        <select
-                            aria-label="المقاس"
-                            data-vsize="${index}"
-                            required
-                        >
-                            <option
-                                value=""
-                                disabled
-                                ${currentSize ? '' : 'selected'}
-                            >
-                                اختر المقاس
-                            </option>
-
-                            ${sizes.map(size => `
-                                <option
-                                    value="${escapeHtml(size)}"
-                                    ${currentSize === size ? 'selected' : ''}
-                                >
-                                    ${escapeHtml(size)}
-                                </option>
-                            `).join('')}
-                        </select>
-                    </td>
-
-                    <td>
-                        <select
-                            aria-label="اللون"
-                            data-vcolor="${index}"
-                            required
-                        >
-                            <option
-                                value=""
-                                disabled
-                                ${currentColor ? '' : 'selected'}
-                            >
-                                اختر اللون
-                            </option>
-
-                            ${colors.map(color => `
-                                <option
-                                    value="${escapeHtml(color)}"
-                                    ${currentColor === color ? 'selected' : ''}
-                                >
-                                    ${escapeHtml(color)}
-                                </option>
-                            `).join('')}
-                        </select>
-                    </td>
-
-                    <td>
-                        <input
-                            aria-label="الكمية"
-                            data-vstock="${index}"
-                            type="number"
-                            min="0"
-                            step="1"
-                            value="${Number(variant.stock_quantity ?? 0)}"
-                            required
-                            style="width:90px"
-                        >
-                    </td>
-
-                    <td>
-                        <select
-                            aria-label="حالة الخيار"
-                            data-vactive="${index}"
-                        >
-                            <option
-                                value="true"
-                                ${variant.is_active !== false ? 'selected' : ''}
-                            >
-                                نشط
-                            </option>
-
-                            <option
-                                value="false"
-                                ${variant.is_active === false ? 'selected' : ''}
-                            >
-                                متوقف
-                            </option>
-                        </select>
-                    </td>
-
-                    <td>
-                        <button
-                            type="button"
-                            class="btn danger"
-                            data-vremove="${index}"
-                        >
-                            حذف
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        body.innerHTML = variantRows.map((variant, index) => `
+            <tr data-variant-row="${index}">
+                <td><strong>${escapeHtml(variant.size || '—')}</strong></td>
+                <td>${escapeHtml(variant.color || '—')}</td>
+                <td>
+                    <input
+                        aria-label="الكمية"
+                        data-vstock="${index}"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value="${Number(variant.stock_quantity ?? 0)}"
+                        required
+                        style="width:90px"
+                    >
+                </td>
+                <td>
+                    <select aria-label="حالة الخيار" data-vactive="${index}">
+                        <option value="true" ${variant.is_active !== false ? 'selected' : ''}>نشط</option>
+                        <option value="false" ${variant.is_active === false ? 'selected' : ''}>متوقف</option>
+                    </select>
+                </td>
+                <td>
+                    <button type="button" class="btn danger" data-vremove="${index}">حذف</button>
+                </td>
+            </tr>
+        `).join('');
     }
 
     function readVariantInputs() {
         const updatedRows = [];
 
         for (let index = 0; index < variantRows.length; index++) {
-            const size = document.querySelector(
-                `[data-vsize="${index}"]`
-            );
+            const stock = document.querySelector(`[data-vstock="${index}"]`);
+            const active = document.querySelector(`[data-vactive="${index}"]`);
 
-            const color = document.querySelector(
-                `[data-vcolor="${index}"]`
-            );
-
-            const stock = document.querySelector(
-                `[data-vstock="${index}"]`
-            );
-
-            const active = document.querySelector(
-                `[data-vactive="${index}"]`
-            );
-
-            if (!size || !color || !stock || !active) {
-                throw new Error(
-                    `تعذر قراءة بيانات الخيار رقم ${index + 1}.`
-                );
+            if (!stock || !active) {
+                throw new Error(`تعذر قراءة بيانات الخيار رقم ${index + 1}.`);
             }
 
             updatedRows.push({
                 ...variantRows[index],
-                size: size.value.trim(),
-                color: color.value.trim(),
-                stock_quantity:
-                    stock.value === '' ? NaN : Number(stock.value),
+                stock_quantity: stock.value === '' ? NaN : Number(stock.value),
                 stock_changed: !variantRows[index].id || Number(stock.value) !== Number(variantRows[index].original_stock_quantity ?? variantRows[index].stock_quantity),
                 is_active: active.value === 'true'
             });
@@ -687,30 +566,6 @@
 
         variantRows = updatedRows;
     }
-
-    // =========================================================
-    // إضافة خيار جديد
-    // =========================================================
-
-    $('add-variant').addEventListener('click', event => {
-        event.preventDefault();
-
-        try {
-            readVariantInputs();
-
-            variantRows.push({
-                size: '',
-                color: '',
-                stock_quantity: 0,
-                is_active: true
-            });
-
-            renderVariants();
-
-        } catch (error) {
-            say(error.message, true);
-        }
-    });
 
     // =========================================================
     // حذف صف من خيارات المنتج
@@ -1196,8 +1051,12 @@
             selectedSizes.clear();
             selectedColors.clear();
             (product.variants || []).forEach(v => {
-                selectedSizes.add(v.size);
-                selectedColors.add(v.color);
+                const size = String(v.size ?? '');
+                const color = String(v.color ?? '');
+                if (size && !availableSizes.includes(size)) availableSizes.push(size);
+                if (color && !availableColors.includes(color)) availableColors.push(color);
+                if (size) selectedSizes.add(size);
+                if (color) selectedColors.add(color);
             });
             renderSizePills();
             renderColorPills();
