@@ -10,8 +10,8 @@ const params = new URLSearchParams(location.search);
 const productId = params.get('id');
 let product = null, images = [], available = [];
 const wilayas = [
-[1,'أدرار',1100,600],[2,'الشلف',700,400],[3,'الأغواط',900,500],[4,'أم البواقي',800,400],[5,'باتنة',800,400],[6,'بجاية',700,400],[7,'بسكرة',900,500],[8,'بشار',1100,600],[9,'البليدة',500,250],[10,'البويرة',650,400],[11,'تمنراست',1300,800],[12,'تبسة',800,500],[13,'تلمسان',800,400],[14,'تيارت',800,400],[15,'تيزي وزو',650,400],[16,'الجزائر',400,200],[17,'الجلفة',900,500],[18,'جيجل',700,400],[19,'سطيف',700,400],[20,'سعيدة',800,400],[21,'سكيكدة',700,400],[22,'سيدي بلعباس',700,400],[23,'عنابة',700,400],[24,'قالمة',800,400],[25,'قسنطينة',700,400],[26,'المدية',600,400],[27,'مستغانم',700,400],[28,'المسيلة',800,500],[29,'معسكر',700,400],[30,'ورقلة',900,500],[31,'وهران',700,400],[32,'البيض',1000,500],[33,'إليزي',1300,600],[34,'برج بوعريريج',700,400],[35,'بومرداس',600,350],[36,'الطارف',800,400],[37,'تندوف',1300,600],[38,'تيسمسيلت',800,400],[39,'الوادي',900,500],[40,'خنشلة',800,500],[41,'سوق أهراس',800,500],[42,'تيبازة',600,350],[43,'ميلة',700,400],[44,'عين الدفلى',600,400],[45,'النعامة',1000,500],[46,'عين تموشنت',700,400],[47,'غرداية',900,500],[48,'غليزان',700,400],[49,'تيميمون',1300,600],[51,'أولاد جلال',900,500],[52,'بني عباس',1300,0],[53,'عين صالح',1300,600],[55,'تقرت',900,500],[57,'المغير',900,0],[58,'المنيعة',1000,500]
-].map(([code,label,homeFee,deskFee])=>({code,label,homeFee,deskFee}));
+[1,'Adrar','أدرار',1100,600],[2,'Chlef','الشلف',700,400],[3,'Laghouat','الأغواط',900,500],[4,'Oum El Bouaghi','أم البواقي',800,400],[5,'Batna','باتنة',800,400],[6,'Béjaïa','بجاية',700,400],[7,'Biskra','بسكرة',900,500],[8,'Béchar','بشار',1100,600],[9,'Blida','البليدة',500,250],[10,'Bouira','البويرة',650,400],[11,'Tamanrasset','تمنراست',1300,800],[12,'Tébessa','تبسة',800,500],[13,'Tlemcen','تلمسان',800,400],[14,'Tiaret','تيارت',800,400],[15,'Tizi Ouzou','تيزي وزو',650,400],[16,'Alger','الجزائر',400,200],[17,'Djelfa','الجلفة',900,500],[18,'Jijel','جيجل',700,400],[19,'Sétif','سطيف',700,400],[20,'Saïda','سعيدة',800,400],[21,'Skikda','سكيكدة',700,400],[22,'Sidi Bel Abbès','سيدي بلعباس',700,400],[23,'Annaba','عنابة',700,400],[24,'Guelma','قالمة',800,400],[25,'Constantine','قسنطينة',700,400],[26,'Médéa','المدية',600,400],[27,'Mostaganem','مستغانم',700,400],[28,"M'Sila",'المسيلة',800,500],[29,'Mascara','معسكر',700,400],[30,'Ouargla','ورقلة',900,500],[31,'Oran','وهران',700,400],[32,'El Bayadh','البيض',1000,500],[33,'Illizi','إليزي',1300,600],[34,'Bordj Bou Arreridj','برج بوعريريج',700,400],[35,'Boumerdès','بومرداس',600,350],[36,'El Tarf','الطارف',800,400],[37,'Tindouf','تندوف',1300,600],[38,'Tissemsilt','تيسمسيلت',800,400],[39,'El Oued','الوادي',900,500],[40,'Khenchela','خنشلة',800,500],[41,'Souk Ahras','سوق أهراس',800,500],[42,'Tipaza','تيبازة',600,350],[43,'Mila','ميلة',700,400],[44,'Aïn Defla','عين الدفلى',600,400],[45,'Naâma','النعامة',1000,500],[46,'Aïn Témouchent','عين تموشنت',700,400],[47,'Ghardaïa','غرداية',900,500],[48,'Relizane','غليزان',700,400],[49,'Timimoun','تيميمون',1300,600],[51,'Ouled Djellal','أولاد جلال',900,500],[52,'Beni Abbes','بني عباس',1300,0],[53,'In Salah','عين صالح',1300,600],[55,'Touggourt','تقرت',900,500],[57,"El M'Ghair",'المغير',900,0],[58,'El Meniaa','المنيعة',1000,500]
+].map(([code,name,label,homeFee,deskFee])=>({code,name,label,homeFee,deskFee}));
 function parseImages(p) {
  let list = [];
  if (Array.isArray(p.images)) list = p.images;
@@ -29,7 +29,7 @@ function setImage(index) {
 }
 function selectedVariant(){return available.find(v=>String(v.id)===$('product-variant').value)||null;}
 function selectedDelivery(){
- const w=wilayas.find(x=>x.label===$('product-wilaya').value), method=$('product-delivery-method').value;
+ const w=wilayas.find(x=>x.name===$('product-wilaya').value), method=$('product-delivery-method').value;
  if(!w||!method) return {valid:false,fee:0,w};
  const fee=method==='home'?w.homeFee:w.deskFee;
  return {valid:fee>0,fee,w,method};
@@ -92,7 +92,7 @@ $('product-variant').addEventListener('change',updateSummary);
 $('product-quantity').addEventListener('input',updateSummary);
 $('quantity-minus').addEventListener('click',()=>{$('product-quantity').value=Math.max(1,(Number($('product-quantity').value)||1)-1);updateSummary();});
 $('quantity-plus').addEventListener('click',()=>{const v=selectedVariant();$('product-quantity').value=Math.min(20,v?Number(v.stock_quantity):20,(Number($('product-quantity').value)||1)+1);updateSummary();});
-wilayas.forEach(w=>$('product-wilaya').add(new Option(w.label,w.label)));
+wilayas.forEach(w=>$('product-wilaya').add(new Option(String(w.code).padStart(2,'0')+' - '+w.label,w.name)));
 $('product-wilaya').addEventListener('change',updateDeliveryOptions);
 $('product-delivery-method').addEventListener('change',updateSummary);
 $('product-checkout-form').addEventListener('submit',async e=>{
@@ -101,7 +101,7 @@ $('product-checkout-form').addEventListener('submit',async e=>{
  if(!d.valid){msg.textContent='يرجى اختيار ولاية وطريقة توصيل متاحة.';return;}
  if(!db){msg.textContent='تعذر الاتصال بالمتجر. لم يتم إرسال الطلب.';return;}
  const f=new FormData(e.currentTarget);
- const payload={customer_name:String(f.get('customer_name')||'').trim(),phone:String(f.get('phone')||'').trim(),wilaya:d.w.label,delivery_method:d.method,municipality:String(f.get('municipality')||'').trim(),address:String(f.get('address')||'').trim(),customer_note:String(f.get('customer_note')||'').trim(),items:[{variant_id:v.id,quantity:qty}]};
+ const payload={customer_name:String(f.get('customer_name')||'').trim(),phone:String(f.get('phone')||'').trim(),wilaya:d.w.name,delivery_method:d.method,municipality:String(f.get('municipality')||'').trim(),address:String(f.get('address')||'').trim(),customer_note:String(f.get('customer_note')||'').trim(),items:[{variant_id:v.id,quantity:qty}]};
  let pending=null;try{pending=JSON.parse(localStorage.getItem('orthiva_pending_order')||'null');}catch{}
  const fingerprint=JSON.stringify(payload);
  if(!pending||pending.fingerprint!==fingerprint){const key=crypto.randomUUID?crypto.randomUUID():'orthiva-'+Date.now()+'-'+Math.random().toString(16).slice(2);pending={fingerprint,key};try{localStorage.setItem('orthiva_pending_order',JSON.stringify(pending));}catch{}}
