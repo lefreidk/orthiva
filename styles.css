@@ -118,3 +118,7 @@ width: 54px;
 height: 54px;
 }
 }
+
+
+/* Designer credit at the very bottom of the footer */
+.footer-credit{flex-basis:100%;width:100%;text-align:center;border-top:1px solid var(--line);padding-top:16px;margin-top:8px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:.7px;color:#8a938b;}
