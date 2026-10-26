@@ -26,6 +26,7 @@ export async function onRequestPost({ request, env }) {
   const customer_name = clean(body.customer_name, 120);
   const phone = clean(body.phone, 40);
   const wilaya = clean(body.wilaya, 100);
+  const delivery_method = clean(body.delivery_method, 10);
   const municipality = clean(body.municipality, 100);
   const address = clean(body.address, 500);
   const customer_note = clean(body.customer_note, 1000);
@@ -35,7 +36,7 @@ export async function onRequestPost({ request, env }) {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(request_id)) {
     return json({ error: 'معرّف الطلب غير صالح. أعد المحاولة.' }, 400);
   }
-  if (!customer_name || !phone || !wilaya || !municipality || !address) {
+  if (!customer_name || !phone || !wilaya || !municipality || !address || !['home', 'desk'].includes(delivery_method)) {
     return json({ error: 'يرجى ملء الاسم والهاتف والولاية والبلدية والعنوان.' }, 400);
   }
   if (!/^[+0-9 ()-]{8,40}$/.test(phone)) return json({ error: 'رقم الهاتف غير صالح.' }, 400);
@@ -72,6 +73,7 @@ export async function onRequestPost({ request, env }) {
         p_municipality: municipality,
         p_address: address,
         p_customer_note: customer_note || null,
+        p_delivery_method: delivery_method,
         p_items: [...consolidated.entries()].map(([variant_id, quantity]) => ({ variant_id, quantity })),
         p_client_request_id: request_id,
       }),
