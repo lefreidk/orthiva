@@ -755,12 +755,9 @@
       const quick = e.target.closest('[data-quick]');
 
       if (view) {
-        openProduct(view.dataset.view);
+        window.location.href = `/product.html?id=${encodeURIComponent(view.dataset.view)}`;
       } else if (quick) {
-        openProduct(
-          quick.dataset.quick,
-          true
-        );
+        window.location.href = `/product.html?id=${encodeURIComponent(quick.dataset.quick)}`;
       }
     }
   );
