@@ -147,3 +147,60 @@ footer{display:block;padding:0;background:#eeeee6;border-top:1px solid var(--lin
 #delivery-method:disabled{background:#f0f0eb;color:#858b84}
 .form-grid select{display:block;margin-top:6px}
 @media(max-width:680px){.footer-main{padding:30px 6%;align-items:flex-start;flex-direction:column;gap:14px}.footer-contact,.social-links{gap:8px}.footer-contact a,.social-links a{font-size:12px}.footer-credit{padding:14px 10px}.cart-modal{max-height:94vh}}
+
+/* Simplified, product-first storefront inspired by the reference's ease of use */
+.simple-hero{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(220px,.6fr);align-items:center;gap:30px;padding:38px 8%;background:#eeeee6;border-bottom:1px solid var(--line)}
+.simple-hero-copy{max-width:680px}
+.simple-hero h1{font-size:clamp(36px,4.4vw,58px);line-height:1.16;color:var(--green);margin:12px 0}
+.simple-hero h1 em{font-style:normal;color:#809781}
+.simple-hero p{max-width:600px;font-size:16px;line-height:1.9;color:#657168;margin:0 0 20px}
+.simple-trust{display:flex;flex-wrap:wrap;gap:10px 20px;margin-top:20px;font-size:12px;color:#5f7064}
+.simple-hero-badge{min-height:220px;border:1px solid #d7ded2;border-radius:12px;background:linear-gradient(145deg,#f9f8f3,#e2e8dd);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--green);box-shadow:0 12px 30px #183d3208}
+.badge-icon{width:48px;height:48px;border:1px solid var(--green);border-radius:50%;display:grid;place-items:center;font:28px Georgia,serif;margin-bottom:8px}
+.simple-hero-badge strong{letter-spacing:4px;font-size:18px}
+.simple-hero-badge small{font-size:8px;letter-spacing:2px;color:#738077;margin-top:3px}
+.simple-hero-badge div{border-top:1px solid #d7ded2;margin-top:18px;padding-top:12px;text-align:center;line-height:1.6;font-size:14px}
+.quick-benefits{display:flex;justify-content:center;flex-wrap:wrap;gap:12px 35px;padding:14px 6%;background:#fff;border-bottom:1px solid var(--line);font-size:13px;color:#526358}
+.products-section{padding:48px 7% 70px}
+.section-heading{align-items:center}
+.section-heading h2{margin-top:5px}
+.section-subtitle{margin:8px 0 0;color:#788179;font-size:13px}
+.filters{margin:20px 0 24px}
+.filter{padding:9px 18px}
+.product-grid{gap:16px}
+.product-card{border-radius:10px;overflow:hidden;box-shadow:0 2px 8px #183d3206}
+.product-card:hover{transform:translateY(-3px);box-shadow:0 12px 25px #183d3210}
+.product-image{height:230px!important;background:#f8f8f5;border-radius:0!important}
+.product-info{padding:14px}
+.product-info h3{min-height:2.5em}
+.card-actions button{min-height:42px;border-radius:6px;font-weight:700}
+.card-actions button:first-child{background:#fff;color:var(--green);border-color:#dce2d9}
+.card-actions button:last-child{background:var(--green);color:#fff}
+.simple-help{padding:30px 7%;display:flex;align-items:center;justify-content:space-between;gap:24px;background:#eeeee6;border-top:1px solid var(--line)}
+.simple-help h2{font-size:25px;color:var(--green);margin:8px 0}
+.simple-help p{font-size:14px;color:#6d786f;margin:0;line-height:1.7}
+.simple-help .primary-btn{white-space:nowrap}
+.topbar{height:72px}
+.cart-button{font-weight:700;background:#fff}
+@media(max-width:700px){
+ .topbar{height:64px;padding-inline:4%}
+ .simple-hero{grid-template-columns:1fr;padding:28px 6% 24px;gap:18px}
+ .simple-hero h1{font-size:40px}
+ .simple-hero p{font-size:14px}
+ .simple-hero-badge{min-height:145px}
+ .simple-hero-badge div{margin-top:10px;padding-top:8px}
+ .simple-trust{gap:8px 14px;font-size:11px}
+ .quick-benefits{justify-content:flex-start;gap:8px 14px;padding:12px 5%;font-size:11px}
+ .products-section{padding:36px 4% 48px}
+ .section-heading{gap:14px}
+ .section-heading h2{font-size:29px}
+ .product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .product-image{height:155px!important}
+ .product-info{padding:10px}
+ .product-info h3{font-size:14px;min-height:2.6em}
+ .product-price{font-size:15px}
+ .card-actions{gap:6px;margin-top:10px}
+ .card-actions button{font-size:11px;padding:9px 5px;min-height:39px}
+ .simple-help{padding:24px 5%;align-items:flex-start;flex-direction:column;gap:15px}
+ .simple-help h2{font-size:22px}
+}
