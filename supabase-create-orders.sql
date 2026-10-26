@@ -5,6 +5,7 @@
 -- Leave it out of INSERT statements so PostgreSQL generates it automatically.
 -- Idempotency key: repeated submissions of the same checkout return the same order.
 alter table public.orders add column if not exists client_request_id uuid;
+alter table public.orders add column if not exists delivery_method text;
 create unique index if not exists orders_client_request_id_unique
   on public.orders (client_request_id) where client_request_id is not null;
 
@@ -213,11 +214,11 @@ begin
   end loop;
 
   insert into public.orders (
-    customer_name, phone, wilaya, municipality, address, customer_note,
+    customer_name, phone, wilaya, municipality, address, customer_note, delivery_method,
     subtotal, delivery_fee, total, status, client_request_id
   ) values (
     trim(p_customer_name), trim(p_phone), trim(p_wilaya), trim(p_municipality),
-    trim(p_address), nullif(trim(coalesce(p_customer_note, '')), ''),
+    trim(p_address), nullif(trim(coalesce(p_customer_note, '')), ''), p_delivery_method,
     v_subtotal, v_delivery_fee, v_subtotal + v_delivery_fee, 'new', p_client_request_id
   ) returning id, orders.order_number into v_order_id, v_order_number;
 
