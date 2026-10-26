@@ -15,6 +15,7 @@ create or replace function public.create_orthiva_order(
   p_municipality text,
   p_address text,
   p_customer_note text,
+  p_delivery_method text,
   p_items jsonb,
   p_client_request_id uuid
 )
@@ -37,6 +38,8 @@ declare
   v_stock integer;
   v_line_total numeric;
   v_subtotal numeric := 0;
+  v_delivery_fee numeric := 0;
+  v_wilaya_code integer;
   v_count integer := 0;
 begin
   if p_client_request_id is null then
@@ -56,6 +59,125 @@ begin
      or length(trim(coalesce(p_address, ''))) < 3 then
     raise exception 'بيانات الزبون غير مكتملة';
   end if;
+  -- Calculate shipping from trusted server-side rates; never accept a browser amount.
+  v_wilaya_code := case trim(p_wilaya)
+    when "Adrar" then 1
+    when "Chlef" then 2
+    when "Laghouat" then 3
+    when "Oum El Bouaghi" then 4
+    when "Batna" then 5
+    when "Béjaïa" then 6
+    when "Biskra" then 7
+    when "Béchar" then 8
+    when "Blida" then 9
+    when "Bouira" then 10
+    when "Tamanrasset" then 11
+    when "Tébessa" then 12
+    when "Tlemcen" then 13
+    when "Tiaret" then 14
+    when "Tizi Ouzou" then 15
+    when "Alger" then 16
+    when "Djelfa" then 17
+    when "Jijel" then 18
+    when "Sétif" then 19
+    when "Saïda" then 20
+    when "Skikda" then 21
+    when "Sidi Bel Abbès" then 22
+    when "Annaba" then 23
+    when "Guelma" then 24
+    when "Constantine" then 25
+    when "Médéa" then 26
+    when "Mostaganem" then 27
+    when "M'Sila" then 28
+    when "Mascara" then 29
+    when "Ouargla" then 30
+    when "Oran" then 31
+    when "El Bayadh" then 32
+    when "Illizi" then 33
+    when "Bordj Bou Arreridj" then 34
+    when "Boumerdès" then 35
+    when "El Tarf" then 36
+    when "Tindouf" then 37
+    when "Tissemsilt" then 38
+    when "El Oued" then 39
+    when "Khenchela" then 40
+    when "Souk Ahras" then 41
+    when "Tipaza" then 42
+    when "Mila" then 43
+    when "Aïn Defla" then 44
+    when "Naâma" then 45
+    when "Aïn Témouchent" then 46
+    when "Ghardaïa" then 47
+    when "Relizane" then 48
+    when "Timimoun" then 49
+    when "Ouled Djellal" then 51
+    when "Beni Abbes" then 52
+    when "In Salah" then 53
+    when "Touggourt" then 55
+    when "El M'Ghair" then 57
+    when "El Meniaa" then 58
+    else null end;
+  if v_wilaya_code is null then raise exception 'الولاية غير متاحة للتوصيل'; end if;
+  if p_delivery_method not in ('home', 'desk') then raise exception 'طريقة التوصيل غير صالحة'; end if;
+  v_delivery_fee := case v_wilaya_code
+    when 1 then case p_delivery_method when 'home' then 1100 else 600 end
+    when 2 then case p_delivery_method when 'home' then 700 else 400 end
+    when 3 then case p_delivery_method when 'home' then 900 else 500 end
+    when 4 then case p_delivery_method when 'home' then 800 else 400 end
+    when 5 then case p_delivery_method when 'home' then 800 else 400 end
+    when 6 then case p_delivery_method when 'home' then 700 else 400 end
+    when 7 then case p_delivery_method when 'home' then 900 else 500 end
+    when 8 then case p_delivery_method when 'home' then 1100 else 600 end
+    when 9 then case p_delivery_method when 'home' then 500 else 250 end
+    when 10 then case p_delivery_method when 'home' then 650 else 400 end
+    when 11 then case p_delivery_method when 'home' then 1300 else 800 end
+    when 12 then case p_delivery_method when 'home' then 800 else 500 end
+    when 13 then case p_delivery_method when 'home' then 800 else 400 end
+    when 14 then case p_delivery_method when 'home' then 800 else 400 end
+    when 15 then case p_delivery_method when 'home' then 650 else 400 end
+    when 16 then case p_delivery_method when 'home' then 400 else 200 end
+    when 17 then case p_delivery_method when 'home' then 900 else 500 end
+    when 18 then case p_delivery_method when 'home' then 700 else 400 end
+    when 19 then case p_delivery_method when 'home' then 700 else 400 end
+    when 20 then case p_delivery_method when 'home' then 800 else 400 end
+    when 21 then case p_delivery_method when 'home' then 700 else 400 end
+    when 22 then case p_delivery_method when 'home' then 700 else 400 end
+    when 23 then case p_delivery_method when 'home' then 700 else 400 end
+    when 24 then case p_delivery_method when 'home' then 800 else 400 end
+    when 25 then case p_delivery_method when 'home' then 700 else 400 end
+    when 26 then case p_delivery_method when 'home' then 600 else 400 end
+    when 27 then case p_delivery_method when 'home' then 700 else 400 end
+    when 28 then case p_delivery_method when 'home' then 800 else 500 end
+    when 29 then case p_delivery_method when 'home' then 700 else 400 end
+    when 30 then case p_delivery_method when 'home' then 900 else 500 end
+    when 31 then case p_delivery_method when 'home' then 700 else 400 end
+    when 32 then case p_delivery_method when 'home' then 1000 else 500 end
+    when 33 then case p_delivery_method when 'home' then 1300 else 600 end
+    when 34 then case p_delivery_method when 'home' then 700 else 400 end
+    when 35 then case p_delivery_method when 'home' then 600 else 350 end
+    when 36 then case p_delivery_method when 'home' then 800 else 400 end
+    when 37 then case p_delivery_method when 'home' then 1300 else 600 end
+    when 38 then case p_delivery_method when 'home' then 800 else 400 end
+    when 39 then case p_delivery_method when 'home' then 900 else 500 end
+    when 40 then case p_delivery_method when 'home' then 800 else 500 end
+    when 41 then case p_delivery_method when 'home' then 800 else 500 end
+    when 42 then case p_delivery_method when 'home' then 600 else 350 end
+    when 43 then case p_delivery_method when 'home' then 700 else 400 end
+    when 44 then case p_delivery_method when 'home' then 600 else 400 end
+    when 45 then case p_delivery_method when 'home' then 1000 else 500 end
+    when 46 then case p_delivery_method when 'home' then 700 else 400 end
+    when 47 then case p_delivery_method when 'home' then 900 else 500 end
+    when 48 then case p_delivery_method when 'home' then 700 else 400 end
+    when 49 then case p_delivery_method when 'home' then 1300 else 600 end
+    when 51 then case p_delivery_method when 'home' then 900 else 500 end
+    when 52 then case p_delivery_method when 'home' then 1300 else 0 end
+    when 53 then case p_delivery_method when 'home' then 1300 else 600 end
+    when 55 then case p_delivery_method when 'home' then 900 else 500 end
+    when 57 then case p_delivery_method when 'home' then 900 else 0 end
+    when 58 then case p_delivery_method when 'home' then 1000 else 500 end
+    else 0 end;
+  if v_delivery_fee <= 0 then raise exception 'طريقة التوصيل غير متاحة لهذه الولاية'; end if;
+
   if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) < 1 or jsonb_array_length(p_items) > 20 then
     raise exception 'قائمة المنتجات غير صالحة';
   end if;
@@ -96,7 +218,7 @@ begin
   ) values (
     trim(p_customer_name), trim(p_phone), trim(p_wilaya), trim(p_municipality),
     trim(p_address), nullif(trim(coalesce(p_customer_note, '')), ''),
-    v_subtotal, 0, v_subtotal, 'new', p_client_request_id
+    v_subtotal, v_delivery_fee, v_subtotal + v_delivery_fee, 'new', p_client_request_id
   ) returning id, orders.order_number into v_order_id, v_order_number;
 
   for v_item in select value from jsonb_array_elements(p_items)
@@ -123,8 +245,9 @@ end;
 $function$;
 
 -- Only public checkout can execute this narrow function; table writes remain behind RLS.
-revoke all on function public.create_orthiva_order(text, text, text, text, text, text, jsonb, uuid) from public;
-grant execute on function public.create_orthiva_order(text, text, text, text, text, text, jsonb, uuid) to anon, authenticated;
+revoke all on function public.create_orthiva_order(text, text, text, text, text, text, text, jsonb, uuid) from public;
+grant execute on function public.create_orthiva_order(text, text, text, text, text, text, text, jsonb, uuid) to anon, authenticated;
 
 -- Remove the previous non-idempotent overload, if this project had an earlier version.
+drop function if exists public.create_orthiva_order(text, text, text, text, text, text, jsonb, uuid);
 drop function if exists public.create_orthiva_order(text, text, text, text, text, text, jsonb);
