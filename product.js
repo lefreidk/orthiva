@@ -48,7 +48,7 @@ function updateSummary(){
  $('product-submit').disabled=!v||!d.valid;
 }
 function updateDeliveryOptions(){
- const select=$('product-delivery-method'), w=wilayas.find(x=>x.label===$('product-wilaya').value);
+ const select=$('product-delivery-method'), w=wilayas.find(x=>x.name===$('product-wilaya').value);
  select.innerHTML=''; select.disabled=!w;
  if(!w){select.add(new Option('اختر الولاية أولًا',''));$('product-delivery-summary').textContent='اختر الولاية وطريقة التوصيل لمعرفة التكلفة.';updateSummary();return;}
  const opts=[];
