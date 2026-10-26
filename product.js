@@ -8,7 +8,7 @@ const money = n => `${Number(n || 0).toLocaleString('ar-DZ')} ${cfg.CURRENCY || 
 const safe = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const params = new URLSearchParams(location.search);
 const productId = params.get('id');
-let product = null, images = [], available = [];
+let product = null, images = [], available = [], selectedColor = '', selectedSize = '', currentImage = 0;
 const wilayas = [
 [1,'Adrar','أدرار',1100,600],[2,'Chlef','الشلف',700,400],[3,'Laghouat','الأغواط',900,500],[4,'Oum El Bouaghi','أم البواقي',800,400],[5,'Batna','باتنة',800,400],[6,'Béjaïa','بجاية',700,400],[7,'Biskra','بسكرة',900,500],[8,'Béchar','بشار',1100,600],[9,'Blida','البليدة',500,250],[10,'Bouira','البويرة',650,400],[11,'Tamanrasset','تمنراست',1300,800],[12,'Tébessa','تبسة',800,500],[13,'Tlemcen','تلمسان',800,400],[14,'Tiaret','تيارت',800,400],[15,'Tizi Ouzou','تيزي وزو',650,400],[16,'Alger','الجزائر',400,200],[17,'Djelfa','الجلفة',900,500],[18,'Jijel','جيجل',700,400],[19,'Sétif','سطيف',700,400],[20,'Saïda','سعيدة',800,400],[21,'Skikda','سكيكدة',700,400],[22,'Sidi Bel Abbès','سيدي بلعباس',700,400],[23,'Annaba','عنابة',700,400],[24,'Guelma','قالمة',800,400],[25,'Constantine','قسنطينة',700,400],[26,'Médéa','المدية',600,400],[27,'Mostaganem','مستغانم',700,400],[28,"M'Sila",'المسيلة',800,500],[29,'Mascara','معسكر',700,400],[30,'Ouargla','ورقلة',900,500],[31,'Oran','وهران',700,400],[32,'El Bayadh','البيض',1000,500],[33,'Illizi','إليزي',1300,600],[34,'Bordj Bou Arreridj','برج بوعريريج',700,400],[35,'Boumerdès','بومرداس',600,350],[36,'El Tarf','الطارف',800,400],[37,'Tindouf','تندوف',1300,600],[38,'Tissemsilt','تيسمسيلت',800,400],[39,'El Oued','الوادي',900,500],[40,'Khenchela','خنشلة',800,500],[41,'Souk Ahras','سوق أهراس',800,500],[42,'Tipaza','تيبازة',600,350],[43,'Mila','ميلة',700,400],[44,'Aïn Defla','عين الدفلى',600,400],[45,'Naâma','النعامة',1000,500],[46,'Aïn Témouchent','عين تموشنت',700,400],[47,'Ghardaïa','غرداية',900,500],[48,'Relizane','غليزان',700,400],[49,'Timimoun','تيميمون',1300,600],[51,'Ouled Djellal','أولاد جلال',900,500],[52,'Beni Abbes','بني عباس',1300,0],[53,'In Salah','عين صالح',1300,600],[55,'Touggourt','تقرت',900,500],[57,"El M'Ghair",'المغير',900,0],[58,'El Meniaa','المنيعة',1000,500]
 ].map(([code,name,label,homeFee,deskFee])=>({code,name,label,homeFee,deskFee}));
@@ -23,9 +23,54 @@ function parseImages(p) {
  return [...new Set(list)];
 }
 function setImage(index) {
- const url=images[index]; if(!url) return;
- $('product-main-image').innerHTML='<img src="'+safe(url)+'" alt="'+safe(product.name)+'">';
- document.querySelectorAll('.product-page-thumb').forEach((b,i)=>{b.classList.toggle('active',i===index);b.setAttribute('aria-pressed',i===index?'true':'false');});
+ if(!images.length) return;
+ currentImage=(index+images.length)%images.length;
+ const url=images[currentImage];
+ $('product-main-image').querySelector('img')?.remove();
+ const img=document.createElement('img'); img.src=url; img.alt=product.name; img.draggable=false;
+ $('product-main-image').prepend(img);
+ $('gallery-count').textContent=(currentImage+1)+' / '+images.length;
+ document.querySelectorAll('.product-page-thumb').forEach((btn,i)=>{btn.classList.toggle('active',i===currentImage);btn.setAttribute('aria-pressed',i===currentImage?'true':'false');});
+ const active=$('product-page-thumbnails').querySelector('.product-page-thumb.active');
+ if(active) active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});
+}
+function colorValue(value){
+ const v=String(value||'').trim().toLowerCase();
+ const known={
+  'black':'#202321','أسود':'#202321','noir':'#202321',
+  'white':'#ffffff','أبيض':'#ffffff','blanc':'#ffffff',
+  'brown':'#79543a','بني':'#79543a','marron':'#79543a',
+  'beige':'#d6c3a0','بيج':'#d6c3a0',
+  'gray':'#8b908d','grey':'#8b908d','رمادي':'#8b908d','gris':'#8b908d',
+  'navy':'#243653','كحلي':'#243653','bleu marine':'#243653',
+  'pink':'#e7a9bb','وردي':'#e7a9bb','rose':'#e7a9bb',
+  'blue':'#4b7da8','أزرق':'#4b7da8','bleu':'#4b7da8',
+  'green':'#4c7858','أخضر':'#4c7858','vert':'#4c7858'
+ };
+ return known[v]||null;
+}
+function renderChoiceButtons(){
+ const colors=[...new Set(available.map(v=>String(v.color||'').trim()).filter(Boolean))];
+ const sizes=[...new Set(available.map(v=>String(v.size||'').trim()).filter(Boolean))].sort((a,b)=>Number(a)-Number(b)||a.localeCompare(b,'ar'));
+ if(!colors.includes(selectedColor)) selectedColor=colors[0]||'';
+ const matchingSizes=sizes.filter(size=>available.some(v=>String(v.color)===selectedColor&&String(v.size)===size));
+ if(!matchingSizes.includes(selectedSize)) selectedSize=matchingSizes[0]||'';
+ $('product-color-options').innerHTML=colors.map(color=>{
+  const hex=colorValue(color);
+  const hasStock=available.some(v=>String(v.color)===color);
+  return '<button type="button" class="choice-button color-choice '+(color===selectedColor?'selected':'')+'" data-color="'+safe(color)+'" aria-pressed="'+(color===selectedColor)+'" '+(!hasStock?'disabled':'')+'>'+ (hex?'<span class="color-swatch" style="--swatch:'+hex+'" aria-hidden="true"></span>':'')+'<span>'+safe(color)+'</span></button>';
+ }).join('');
+ $('product-size-options').innerHTML=matchingSizes.map(size=>{
+  const variant=available.find(v=>String(v.color)===selectedColor&&String(v.size)===size);
+  const stock=Number(variant?.stock_quantity||0);
+  return '<button type="button" class="choice-button size-choice '+(size===selectedSize?'selected':'')+'" data-size="'+safe(size)+'" aria-pressed="'+(size===selectedSize)+'" '+(stock<1?'disabled':'')+'>'+safe(size)+'</button>';
+ }).join('');
+ $('selected-color-label').textContent=selectedColor||'اختر اللون';
+ $('selected-size-label').textContent=selectedSize||'اختر المقاس';
+ const chosen=available.find(v=>String(v.color)===selectedColor&&String(v.size)===selectedSize);
+ $('product-variant').innerHTML=chosen?'<option value="'+safe(chosen.id)+'">'+safe(chosen.size)+' — '+safe(chosen.color)+'</option>':'<option value="">اختر اللون والمقاس</option>';
+ $('product-variant').value=chosen?String(chosen.id):'';
+ $('product-variant').disabled=!chosen;
 }
 function selectedVariant(){return available.find(v=>String(v.id)===$('product-variant').value)||null;}
 function selectedDelivery(){
@@ -67,11 +112,10 @@ function renderProduct(){
  if(Number(product.compare_at_price)>Number(product.price)){ $('product-old-price').textContent=money(product.compare_at_price);$('product-old-price').hidden=false;$('product-discount').textContent='وفر '+money(product.compare_at_price-product.price);$('product-discount').hidden=false; }
  $('product-description').textContent=product.description||'حذاء مختار لراحة يومية. اختر المقاس واللون المناسبين ثم أكمل معلومات التوصيل.';
  $('product-availability').textContent=available.length?'متوفر للطلب':'غير متوفر حاليًا';
- images=parseImages(product);
- $('product-main-image').innerHTML=images.length?'<img src="'+safe(images[0])+'" alt="'+safe(product.name)+'">':'<span class="image-fallback">◌</span>';
- $('product-page-thumbnails').innerHTML=images.length>1?images.map((url,i)=>'<button type="button" class="product-page-thumb '+(!i?'active':'')+'" data-image="'+i+'" aria-label="عرض الصورة '+(i+1)+'" aria-pressed="'+(!i?'true':'false')+'"><img src="'+safe(url)+'" alt="'+safe(product.name)+' '+(i+1)+'" loading="lazy"></button>').join(''):'';
- $('product-variant').innerHTML=available.length?available.map(v=>'<option value="'+safe(v.id)+'">'+safe(v.size)+' — '+safe(v.color)+' (متوفر '+Number(v.stock_quantity)+')</option>').join(''):'<option value="">لا توجد مقاسات أو ألوان متاحة</option>';
- $('product-variant').disabled=!available.length;
+ images=parseImages(product); currentImage=0;
+ $('product-main-image').innerHTML=images.length?'<img src="'+safe(images[0])+'" alt="'+safe(product.name)+'"><button type="button" class="gallery-arrow gallery-prev" id="gallery-prev" aria-label="الصورة السابقة">‹</button><button type="button" class="gallery-arrow gallery-next" id="gallery-next" aria-label="الصورة التالية">›</button><span class="gallery-count" id="gallery-count">1 / '+images.length+'</span>':'<span class="image-fallback">◌</span>';
+ $('product-page-thumbnails').innerHTML=images.length?images.map((url,i)=>'<button type="button" class="product-page-thumb '+(!i?'active':'')+'" data-image="'+i+'" aria-label="عرض الصورة '+(i+1)+'" aria-pressed="'+(!i?'true':'false')+'"><img src="'+safe(url)+'" alt="'+safe(product.name)+' '+(i+1)+'" loading="lazy"></button>').join(''):'';
+ renderChoiceButtons();
  $('product-quantity').max=available.length?Math.min(20,Math.max(...available.map(v=>Number(v.stock_quantity)||1))):1;
  $('product-quantity').disabled=!available.length;
  $('product-submit').disabled=!available.length;
@@ -88,6 +132,11 @@ async function loadProduct(){
  renderProduct();
 }
 $('product-page-thumbnails').addEventListener('click',e=>{const b=e.target.closest('[data-image]');if(b)setImage(Number(b.dataset.image));});
+$('product-main-image').addEventListener('click',e=>{if(e.target.closest('#gallery-prev'))setImage(currentImage-1);if(e.target.closest('#gallery-next'))setImage(currentImage+1);});
+$('thumb-prev').addEventListener('click',()=>$('product-page-thumbnails').scrollBy({left:-180,behavior:'smooth'}));
+$('thumb-next').addEventListener('click',()=>$('product-page-thumbnails').scrollBy({left:180,behavior:'smooth'}));
+$('product-color-options').addEventListener('click',e=>{const b=e.target.closest('[data-color]');if(!b||b.disabled)return;selectedColor=b.dataset.color;selectedSize='';renderChoiceButtons();updateSummary();});
+$('product-size-options').addEventListener('click',e=>{const b=e.target.closest('[data-size]');if(!b||b.disabled)return;selectedSize=b.dataset.size;renderChoiceButtons();updateSummary();});
 $('product-variant').addEventListener('change',updateSummary);
 $('product-quantity').addEventListener('input',updateSummary);
 $('quantity-minus').addEventListener('click',()=>{$('product-quantity').value=Math.max(1,(Number($('product-quantity').value)||1)-1);updateSummary();});
