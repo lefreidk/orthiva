@@ -1282,6 +1282,23 @@
                     `
                     : '';
 
+                const deliveryMethod = order.delivery_method === 'home'
+                    ? 'توصيل للمنزل'
+                    : order.delivery_method === 'desk'
+                        ? 'توصيل للمكتب'
+                        : 'غير مسجل';
+
+                const orderMetaHtml = `
+                    <div style="margin-top:12px;padding:10px;border-top:1px solid #ddd;line-height:1.9">
+                        <div>الولاية: <strong>${escapeHtml(order.wilaya || '—')}</strong></div>
+                        <div>البلدية: <strong>${escapeHtml(order.municipality || '—')}</strong></div>
+                        <div>العنوان: <strong>${escapeHtml(order.address || '—')}</strong></div>
+                        <div>طريقة التوصيل: <strong>${deliveryMethod}</strong></div>
+                        <div>مجموع المنتجات: <strong>${order.subtotal !== null && order.subtotal !== undefined ? money(order.subtotal) : '—'}</strong></div>
+                        <div>رسوم التوصيل: <strong>${order.delivery_fee !== null && order.delivery_fee !== undefined ? money(order.delivery_fee) : '—'}</strong></div>
+                    </div>
+                `;
+
                 return `
                     <tr>
                         <td>${escapeHtml(orderNumber)}</td>
@@ -1292,6 +1309,7 @@
 
                         <td>
                             ${productsHtml}
+                            ${orderMetaHtml}
                             ${totalHtml}
                         </td>
 
