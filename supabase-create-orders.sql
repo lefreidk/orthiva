@@ -61,61 +61,61 @@ begin
   end if;
   -- Calculate shipping from trusted server-side rates; never accept a browser amount.
   v_wilaya_code := case trim(p_wilaya)
-    when "Adrar" then 1
-    when "Chlef" then 2
-    when "Laghouat" then 3
-    when "Oum El Bouaghi" then 4
-    when "Batna" then 5
-    when "Béjaïa" then 6
-    when "Biskra" then 7
-    when "Béchar" then 8
-    when "Blida" then 9
-    when "Bouira" then 10
-    when "Tamanrasset" then 11
-    when "Tébessa" then 12
-    when "Tlemcen" then 13
-    when "Tiaret" then 14
-    when "Tizi Ouzou" then 15
-    when "Alger" then 16
-    when "Djelfa" then 17
-    when "Jijel" then 18
-    when "Sétif" then 19
-    when "Saïda" then 20
-    when "Skikda" then 21
-    when "Sidi Bel Abbès" then 22
-    when "Annaba" then 23
-    when "Guelma" then 24
-    when "Constantine" then 25
-    when "Médéa" then 26
-    when "Mostaganem" then 27
-    when "M'Sila" then 28
-    when "Mascara" then 29
-    when "Ouargla" then 30
-    when "Oran" then 31
-    when "El Bayadh" then 32
-    when "Illizi" then 33
-    when "Bordj Bou Arreridj" then 34
-    when "Boumerdès" then 35
-    when "El Tarf" then 36
-    when "Tindouf" then 37
-    when "Tissemsilt" then 38
-    when "El Oued" then 39
-    when "Khenchela" then 40
-    when "Souk Ahras" then 41
-    when "Tipaza" then 42
-    when "Mila" then 43
-    when "Aïn Defla" then 44
-    when "Naâma" then 45
-    when "Aïn Témouchent" then 46
-    when "Ghardaïa" then 47
-    when "Relizane" then 48
-    when "Timimoun" then 49
-    when "Ouled Djellal" then 51
-    when "Beni Abbes" then 52
-    when "In Salah" then 53
-    when "Touggourt" then 55
-    when "El M'Ghair" then 57
-    when "El Meniaa" then 58
+    when 'Adrar' then 1
+    when 'Chlef' then 2
+    when 'Laghouat' then 3
+    when 'Oum El Bouaghi' then 4
+    when 'Batna' then 5
+    when 'Béjaïa' then 6
+    when 'Biskra' then 7
+    when 'Béchar' then 8
+    when 'Blida' then 9
+    when 'Bouira' then 10
+    when 'Tamanrasset' then 11
+    when 'Tébessa' then 12
+    when 'Tlemcen' then 13
+    when 'Tiaret' then 14
+    when 'Tizi Ouzou' then 15
+    when 'Alger' then 16
+    when 'Djelfa' then 17
+    when 'Jijel' then 18
+    when 'Sétif' then 19
+    when 'Saïda' then 20
+    when 'Skikda' then 21
+    when 'Sidi Bel Abbès' then 22
+    when 'Annaba' then 23
+    when 'Guelma' then 24
+    when 'Constantine' then 25
+    when 'Médéa' then 26
+    when 'Mostaganem' then 27
+    when 'M''Sila' then 28
+    when 'Mascara' then 29
+    when 'Ouargla' then 30
+    when 'Oran' then 31
+    when 'El Bayadh' then 32
+    when 'Illizi' then 33
+    when 'Bordj Bou Arreridj' then 34
+    when 'Boumerdès' then 35
+    when 'El Tarf' then 36
+    when 'Tindouf' then 37
+    when 'Tissemsilt' then 38
+    when 'El Oued' then 39
+    when 'Khenchela' then 40
+    when 'Souk Ahras' then 41
+    when 'Tipaza' then 42
+    when 'Mila' then 43
+    when 'Aïn Defla' then 44
+    when 'Naâma' then 45
+    when 'Aïn Témouchent' then 46
+    when 'Ghardaïa' then 47
+    when 'Relizane' then 48
+    when 'Timimoun' then 49
+    when 'Ouled Djellal' then 51
+    when 'Beni Abbes' then 52
+    when 'In Salah' then 53
+    when 'Touggourt' then 55
+    when 'El M''Ghair' then 57
+    when 'El Meniaa' then 58
     else null end;
   if v_wilaya_code is null then raise exception 'الولاية غير متاحة للتوصيل'; end if;
   if p_delivery_method not in ('home', 'desk') then raise exception 'طريقة التوصيل غير صالحة'; end if;
