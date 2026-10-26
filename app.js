@@ -294,13 +294,16 @@
       .toLowerCase();
 
     const list = products.filter((p) => {
-      const matchesCategory =
-        category === 'all' ||
-        String(p.category || '')
-          .trim()
-          .toLocaleLowerCase('ar') ===
-          category.toLocaleLowerCase('ar') ||
-        String(p.category || '').includes(category);
+      const productCategory = String(p.category || '').trim().toLocaleLowerCase('ar');
+      const categoryAliases = {
+        'أحذية طبية': ['أحذية طبية', 'طبي', 'medical shoes', 'medical'],
+        'قباقيب طبية': ['قباقيب طبية', 'قباقيب', 'clogs', 'medical clogs'],
+        'أحذية العمل': ['أحذية العمل', 'أحذية عمل', 'عمل', 'work shoes', 'work']
+      };
+      const matchesCategory = category === 'all' ||
+        (categoryAliases[category] || [category]).some(alias =>
+          productCategory.includes(alias.toLocaleLowerCase('ar'))
+        );
 
       const matchesSearch =
         `${p.name} ${p.category} ${p.description || ''}`
