@@ -369,14 +369,14 @@
                       type="button"
                       data-view="${safe(p.id)}"
                     >
-                      التفاصيل
+                      عرض المنتج
                     </button>
 
                     <button
                       type="button"
                       data-quick="${safe(p.id)}"
                     >
-                      أضف للسلة
+                      اختر واطلب
                     </button>
 
                   </div>
