@@ -17,7 +17,7 @@
 <div id="product-error" class="product-error" hidden></div>
 <section id="product-content" hidden>
 <div class="product-page-grid">
-<div class="product-page-gallery"><div class="product-page-main-image" id="product-main-image"><span class="image-fallback">◌</span></div><div id="product-page-thumbnails" class="product-page-thumbnails"></div></div>
+<div class="product-page-gallery"><div class="product-page-main-image" id="product-main-image"><span class="image-fallback">◌</span><button type="button" class="gallery-arrow gallery-prev" id="gallery-prev" aria-label="الصورة السابقة">‹</button><button type="button" class="gallery-arrow gallery-next" id="gallery-next" aria-label="الصورة التالية">›</button><span class="gallery-count" id="gallery-count">1 / 1</span></div><div class="product-thumb-carousel"><button type="button" class="thumb-scroll" id="thumb-prev" aria-label="تحريك الصور السابقة">‹</button><div id="product-page-thumbnails" class="product-page-thumbnails"></div><button type="button" class="thumb-scroll" id="thumb-next" aria-label="تحريك الصور التالية">›</button></div></div>
 <div class="product-page-info">
 <span class="eyebrow" id="product-category">ORTHIVA</span><h1 id="product-name"></h1>
 <div class="product-page-prices"><strong id="product-price"></strong><del id="product-old-price" hidden></del><span id="product-discount" hidden></span></div>
@@ -25,7 +25,7 @@
 <p class="product-page-description" id="product-description"></p>
 <div class="product-order-box">
 <h2>اختر مواصفات الحذاء</h2>
-<label class="field-label" for="product-variant">المقاس واللون</label><select class="option-select" id="product-variant" required><option value="">جارٍ تحميل الخيارات…</option></select>
+<div class="variant-choice-group"><div class="variant-choice-heading"><span>اللون</span><small id="selected-color-label">اختر اللون</small></div><div id="product-color-options" class="choice-buttons color-choice-buttons" role="group" aria-label="اختيار اللون"></div></div><div class="variant-choice-group"><div class="variant-choice-heading"><span>المقاس</span><small id="selected-size-label">اختر المقاس</small></div><div id="product-size-options" class="choice-buttons size-choice-buttons" role="group" aria-label="اختيار المقاس"></div></div><select class="option-select variant-hidden-select" id="product-variant" required aria-label="الخيار المحدد"><option value="">اختر اللون والمقاس</option></select>
 <div class="product-quantity-row"><label for="product-quantity">الكمية</label><div class="quantity-control"><button type="button" id="quantity-minus" aria-label="تقليل الكمية">−</button><input id="product-quantity" type="number" value="1" min="1" max="20" inputmode="numeric"><button type="button" id="quantity-plus" aria-label="زيادة الكمية">+</button></div><span id="stock-note"></span></div>
 <div class="product-trust-row"><span>✓ الدفع عند الاستلام</span><span>✓ خيارات متوفرة فقط</span><span>✓ توصيل حسب الولاية</span></div>
 </div>
